@@ -9,9 +9,12 @@ Phase 2 adds authenticated responder operations to the Phase 1 report ingestion/
 - `GET /reports?since=&bbox=&limit=` — `since` filters on server ingestion time (`received_at`), not the client's `created_at` (mesh-relayed reports arrive late and device clocks aren't trusted). `bbox` is `minLng,minLat,maxLng,maxLat` (WGS84) and uses the PostGIS `&&` bounding-box operator against the `reports.location` geography column.
 - `PATCH /reports/{id}` — responder-only verification transition. It persists the optional responder note without adding it to the public report contract; invalid/regressive transitions return `409`.
 - `POST /instructions` — responder-only signed `INSTRUCTION` or `SAFE_ROUTE` message. It verifies Ed25519 identity, persists the message idempotently, and creates an `outbound_instructions` queue entry.
+- `POST /translations` — responder-only request containing a stored `message_id` and `bn`/`en` target language. The backend reads the report itself, then sends its text to the isolated AI service; it never accepts browser-provided report text or exposes translation-provider credentials.
 - `POST /ai/classify` — implemented by the separate AI service, not this process.
 
-Database-backed endpoints require `PROTIDHONI_DATABASE_URL`. The two responder-only endpoints additionally require `PROTIDHONI_RESPONDER_TOKEN` and the matching `X-Responder-Token` header. If the server token is unset, access remains disabled with `503`; missing/incorrect request credentials return `401`. Set `PROTIDHONI_CORS_ORIGINS` to a comma-separated allow-list of dashboard origins; wildcards and URL paths are rejected.
+Database-backed endpoints require `PROTIDHONI_DATABASE_URL`. The three responder-only endpoints additionally require `PROTIDHONI_RESPONDER_TOKEN` and the matching `X-Responder-Token` header. If the server token is unset, access remains disabled with `503`; missing/incorrect request credentials return `401`. Set `PROTIDHONI_CORS_ORIGINS` to a comma-separated allow-list of dashboard origins; wildcards and URL paths are rejected.
+
+Translation also requires a non-blank 32-character-or-longer `PROTIDHONI_AI_INTERNAL_TOKEN` shared only with the AI service and `PROTIDHONI_AI_SERVICE_URL` (Compose default: `http://ai-service:8001`). A missing/unsafe internal credential or unreachable AI/provider returns `503`; malformed AI replies return `502` without exposing internal details.
 
 Generate a token from at least 32 cryptographically random bytes, store it only in `.env`/your deployment secret manager, and give it only to the responder dashboard deployment:
 

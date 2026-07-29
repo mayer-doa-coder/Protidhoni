@@ -19,10 +19,17 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from psycopg_pool import AsyncConnectionPool
 from pydantic import BaseModel
 
-from . import db
+from . import db, translation
 from .auth import require_responder_token
+from .config import get_settings
 from .crypto import SignatureVerificationError, verify_report_signature
-from .models import Report, ReportBatch, VerificationUpdate
+from .models import (
+    Report,
+    ReportBatch,
+    TranslationRequest,
+    TranslationResponse,
+    VerificationUpdate,
+)
 from .ratelimit import SenderRateLimiter
 
 router = APIRouter(tags=["reports"])
@@ -59,6 +66,46 @@ class ReportCollection(BaseModel):
 class InstructionResponse(BaseModel):
     message_id: str
     delivery_status: Literal["queued"]
+
+
+@router.post(
+    "/translations",
+    response_model=TranslationResponse,
+    dependencies=[Depends(require_responder_token)],
+)
+async def translate_report(
+    request: TranslationRequest,
+    pool: AsyncConnectionPool = Depends(get_db_pool),
+) -> TranslationResponse:
+    """Translate one stored report without accepting client-controlled text."""
+    report = await db.get_report(pool, message_id=str(request.message_id))
+    if report is None:
+        raise HTTPException(status_code=404, detail="Report not found.")
+
+    try:
+        translated = await translation.request_ai_translation(
+            base_url=get_settings().ai_service_url,
+            internal_token=get_settings().configured_ai_internal_token(),
+            text=report.payload.text,
+            source_language=report.language,
+            target_language=request.target_language,
+        )
+    except translation.TranslationUnavailable as error:
+        raise HTTPException(
+            status_code=503, detail="Translation is temporarily unavailable."
+        ) from error
+    except translation.TranslationProtocolError as error:
+        raise HTTPException(
+            status_code=502, detail="Translation service returned an invalid response."
+        ) from error
+
+    return TranslationResponse(
+        message_id=request.message_id,
+        source_language=translated.source_language,
+        target_language=translated.target_language,
+        text=translated.text,
+        provider=translated.provider,
+    )
 
 
 def _verified_sender_hash_or_none(report: Report) -> str | None:

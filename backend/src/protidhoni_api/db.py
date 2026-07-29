@@ -77,6 +77,12 @@ FROM reports
 WHERE message_id = %(message_id)s::uuid
 """
 
+_SELECT_REPORT_SQL = """
+SELECT raw_message, priority, verification_status, corroboration_count, received_at
+FROM reports
+WHERE message_id = %(message_id)s::uuid
+"""
+
 _QUEUE_OUTBOUND_INSTRUCTION_SQL = """
 INSERT INTO outbound_instructions (message_id, delivery_status)
 VALUES (%(message_id)s::uuid, 'queued')
@@ -159,9 +165,7 @@ async def queue_instruction(pool: AsyncConnectionPool, report: Report) -> Ingest
                         "message_id is already used by different report content"
                     )
 
-            await cur.execute(
-                _QUEUE_OUTBOUND_INSTRUCTION_SQL, {"message_id": report.message_id}
-            )
+            await cur.execute(_QUEUE_OUTBOUND_INSTRUCTION_SQL, {"message_id": report.message_id})
             return outcome
 
 
@@ -199,6 +203,15 @@ async def list_reports(
         "reports": reports,
         "next_since": latest_received_at.isoformat() if latest_received_at else None,
     }
+
+
+async def get_report(pool: AsyncConnectionPool, *, message_id: str) -> Report | None:
+    """Return one server-normalized report for responder-only operations."""
+    async with pool.connection() as conn:
+        async with conn.cursor(row_factory=dict_row) as cur:
+            await cur.execute(_SELECT_REPORT_SQL, {"message_id": message_id})
+            row = await cur.fetchone()
+    return _report_from_row(row) if row is not None else None
 
 
 async def update_report_verification(

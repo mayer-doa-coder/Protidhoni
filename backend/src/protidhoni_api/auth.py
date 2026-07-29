@@ -14,7 +14,7 @@ from .config import get_settings
 responder_token_header = APIKeyHeader(
     name="X-Responder-Token",
     scheme_name="ResponderToken",
-    description="Responder credential required for verification updates and outbound instructions.",
+    description="Responder credential required for verification, instructions, and translations.",
     auto_error=False,
 )
 
