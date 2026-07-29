@@ -7,7 +7,9 @@ from .settings import get_settings
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Verify the configured BanglaBERT model locally.")
+    parser = argparse.ArgumentParser(
+        description="Verify the configured BanglaBERT model locally."
+    )
     parser.add_argument(
         "--download",
         action="store_true",
@@ -18,10 +20,14 @@ def main() -> None:
     try:
         from transformers import AutoModel, AutoTokenizer
     except ImportError as error:
-        raise SystemExit("Install optional dependencies first: pip install -e '.[model]'") from error
+        raise SystemExit(
+            "Install optional dependencies first: pip install -e '.[model]'"
+        ) from error
 
     model_id = get_settings().model_id
-    tokenizer = AutoTokenizer.from_pretrained(model_id, local_files_only=not args.download)
+    tokenizer = AutoTokenizer.from_pretrained(
+        model_id, local_files_only=not args.download
+    )
     model = AutoModel.from_pretrained(model_id, local_files_only=not args.download)
     encoded = tokenizer("জরুরি চিকিৎসা সহায়তা দরকার", return_tensors="pt")
     if encoded.input_ids.shape[1] < 2:

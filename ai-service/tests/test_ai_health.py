@@ -9,3 +9,4 @@ def test_health_declares_the_configured_model_without_loading_it() -> None:
     assert body["service"] == "ai-service"
     assert body["status"] == "ok"
     assert body["configured_model"] == "csebuetnlp/banglabert"
+    assert body["active_classifier"] == "phase1-tfidf-rules-v1"
