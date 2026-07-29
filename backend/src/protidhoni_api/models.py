@@ -12,6 +12,7 @@ valid messages.
 from __future__ import annotations
 
 import re
+from uuid import UUID
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -35,9 +36,7 @@ VerificationStatus = Literal["unverified", "corroborated", "verified", "disputed
 _DEVICE_HASH_RE = re.compile(r"^[A-Za-z0-9_-]{43}$")
 _SIGNATURE_VALUE_RE = re.compile(r"^[A-Za-z0-9_-]{86}$")
 _ATTACHMENT_REF_RE = re.compile(r"^[a-f0-9]{64}$")
-_ISO8601_RE = re.compile(
-    r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$"
-)
+_ISO8601_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$")
 
 
 class Location(BaseModel):
@@ -52,7 +51,9 @@ class Location(BaseModel):
     def _check_source_consistency(self) -> Location:
         if self.source == "none":
             if self.lat is not None or self.lng is not None or self.accuracy_m is not None:
-                raise ValueError("location.source 'none' requires lat, lng, and accuracy_m to be null")
+                raise ValueError(
+                    "location.source 'none' requires lat, lng, and accuracy_m to be null"
+                )
         elif self.source == "gps":
             if self.lat is None or self.lng is None or self.accuracy_m is None:
                 raise ValueError("location.source 'gps' requires lat, lng, and accuracy_m")
@@ -77,7 +78,9 @@ class Payload(BaseModel):
         if len(set(self.needs)) != len(self.needs):
             raise ValueError("payload.needs must not contain duplicates")
         if self.attachment_ref is not None and not _ATTACHMENT_REF_RE.match(self.attachment_ref):
-            raise ValueError("payload.attachment_ref must be a lowercase 64-character hex SHA-256 hash")
+            raise ValueError(
+                "payload.attachment_ref must be a lowercase 64-character hex SHA-256 hash"
+            )
         return self
 
 
@@ -90,7 +93,9 @@ class Signature(BaseModel):
     @model_validator(mode="after")
     def _check_value_format(self) -> Signature:
         if not _SIGNATURE_VALUE_RE.match(self.value):
-            raise ValueError("signature.value must be 86 base64url characters (64 raw bytes, unpadded)")
+            raise ValueError(
+                "signature.value must be 86 base64url characters (64 raw bytes, unpadded)"
+            )
         return self
 
 
@@ -99,6 +104,68 @@ class Verification(BaseModel):
 
     status: VerificationStatus
     corroboration_count: int = Field(ge=0)
+
+
+class VerificationUpdate(BaseModel):
+    """Responder-owned fields accepted by PATCH /reports/{message_id}."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    status: VerificationStatus
+    responder_note: str | None = Field(default=None, max_length=1000)
+
+    @model_validator(mode="before")
+    @classmethod
+    def _reject_explicit_null_note(cls, value):
+        if (
+            isinstance(value, dict)
+            and "responder_note" in value
+            and value["responder_note"] is None
+        ):
+            raise ValueError("responder_note must be a string when provided")
+        return value
+
+    @property
+    def note_was_provided(self) -> bool:
+        return "responder_note" in self.model_fields_set
+
+
+class TranslationRequest(BaseModel):
+    """An authorized request to translate one stored report, never raw text."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    message_id: UUID
+    target_language: Language
+
+
+class TranslationResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    message_id: UUID
+    source_language: Language
+    target_language: Language
+    text: str = Field(min_length=1, max_length=4000)
+    provider: str = Field(min_length=1, max_length=64)
+
+
+_ALLOWED_VERIFICATION_TRANSITIONS: dict[VerificationStatus, frozenset[VerificationStatus]] = {
+    "unverified": frozenset({"unverified", "corroborated", "verified", "disputed"}),
+    "corroborated": frozenset({"corroborated", "verified", "disputed"}),
+    "verified": frozenset({"verified"}),
+    "disputed": frozenset({"disputed"}),
+}
+
+
+def verification_transition_allowed(
+    current: VerificationStatus, requested: VerificationStatus
+) -> bool:
+    """Enforce unverified → corroborated → verified, or terminal disputed.
+
+    Repeating the current state is idempotent. Verified and disputed are
+    terminal so a later request cannot silently erase an adjudicated result.
+    """
+    return requested in _ALLOWED_VERIFICATION_TRANSITIONS[current]
 
 
 def _validate_device_hash(value: str, field_name: str) -> str:

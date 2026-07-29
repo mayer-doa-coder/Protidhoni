@@ -12,15 +12,23 @@ during exactly the bursty, multi-source conditions it exists for.
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Annotated, Literal
-
+from typing import Annotated,Literal
+from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from psycopg_pool import AsyncConnectionPool
 from pydantic import BaseModel
 
-from . import db
+from . import db, translation
+from .auth import require_responder_token
+from .config import get_settings
 from .crypto import SignatureVerificationError, verify_report_signature
-from .models import Report, ReportBatch
+from .models import (
+    Report,
+    ReportBatch,
+    TranslationRequest,
+    TranslationResponse,
+    VerificationUpdate,
+)
 from .ratelimit import SenderRateLimiter
 
 router = APIRouter(tags=["reports"])
@@ -52,6 +60,51 @@ class IngestResponse(BaseModel):
 class ReportCollection(BaseModel):
     reports: list[dict]
     next_since: str | None
+
+
+class InstructionResponse(BaseModel):
+    message_id: str
+    delivery_status: Literal["queued"]
+
+
+@router.post(
+    "/translations",
+    response_model=TranslationResponse,
+    dependencies=[Depends(require_responder_token)],
+)
+async def translate_report(
+    request: TranslationRequest,
+    pool: AsyncConnectionPool = Depends(get_db_pool),
+) -> TranslationResponse:
+    """Translate one stored report without accepting client-controlled text."""
+    report = await db.get_report(pool, message_id=str(request.message_id))
+    if report is None:
+        raise HTTPException(status_code=404, detail="Report not found.")
+
+    try:
+        translated = await translation.request_ai_translation(
+            base_url=get_settings().ai_service_url,
+            internal_token=get_settings().configured_ai_internal_token(),
+            text=report.payload.text,
+            source_language=report.language,
+            target_language=request.target_language,
+        )
+    except translation.TranslationUnavailable as error:
+        raise HTTPException(
+            status_code=503, detail="Translation is temporarily unavailable."
+        ) from error
+    except translation.TranslationProtocolError as error:
+        raise HTTPException(
+            status_code=502, detail="Translation service returned an invalid response."
+        ) from error
+
+    return TranslationResponse(
+        message_id=request.message_id,
+        source_language=translated.source_language,
+        target_language=translated.target_language,
+        text=translated.text,
+        provider=translated.provider,
+    )
 
 
 def _verified_sender_hash_or_none(report: Report) -> str | None:
@@ -106,3 +159,61 @@ async def get_reports(
 
     page = await db.list_reports(pool, since=since, bbox=bbox_tuple, limit=limit)
     return ReportCollection(**page)
+
+
+@router.patch(
+    "/reports/{message_id}",
+    response_model=Report,
+    dependencies=[Depends(require_responder_token)],
+)
+async def update_report_verification(
+    message_id: UUID,
+    update: VerificationUpdate,
+    pool: AsyncConnectionPool = Depends(get_db_pool),
+) -> Report:
+    try:
+        report = await db.update_report_verification(
+            pool,
+            message_id=str(message_id),
+            status=update.status,
+            responder_note=update.responder_note,
+            note_was_provided=update.note_was_provided,
+        )
+    except db.VerificationTransitionError as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
+
+    if report is None:
+        raise HTTPException(status_code=404, detail="Report not found.")
+    return report
+
+
+@router.post(
+    "/instructions",
+    status_code=202,
+    response_model=InstructionResponse,
+    dependencies=[Depends(require_responder_token)],
+)
+async def create_instruction(
+    instruction: Report,
+    pool: AsyncConnectionPool = Depends(get_db_pool),
+) -> InstructionResponse:
+    if instruction.type not in {"INSTRUCTION", "SAFE_ROUTE"}:
+        raise HTTPException(
+            status_code=400,
+            detail="instructions must use type INSTRUCTION or SAFE_ROUTE",
+        )
+
+    try:
+        verify_report_signature(instruction)
+    except SignatureVerificationError as error:
+        raise HTTPException(
+            status_code=400,
+            detail="instruction signature or signer identity is invalid",
+        ) from error
+
+    try:
+        await db.queue_instruction(pool, instruction)
+    except db.InstructionConflictError as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
+
+    return InstructionResponse(message_id=instruction.message_id, delivery_status="queued")
