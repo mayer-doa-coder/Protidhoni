@@ -1,0 +1,26 @@
+# Secrets and local state
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+
+# JavaScript / React Native
+node_modules/
+dist/
+coverage/
+.expo/
+android/.gradle/
+android/app/build/
+mobile-client/.phase0-template-git/
+mobile-client-preinit/
+
+# Editors and OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

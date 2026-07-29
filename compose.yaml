@@ -1,0 +1,50 @@
+name: protidhoni
+
+services:
+  postgres:
+    image: postgis/postgis:16-3.4
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-protidhoni}
+      POSTGRES_USER: ${POSTGRES_USER:-protidhoni}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/db/init.sql:/docker-entrypoint-initdb.d/001-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  backend:
+    build:
+      context: ./backend
+    environment:
+      PROTIDHONI_DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL in .env}
+      PROTIDHONI_AI_INTERNAL_TOKEN: ${AI_INTERNAL_TOKEN:?Set AI_INTERNAL_TOKEN in .env}
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  ai-service:
+    build:
+      context: ./ai-service
+    environment:
+      PROTIDHONI_AI_INTERNAL_TOKEN: ${AI_INTERNAL_TOKEN:?Set AI_INTERNAL_TOKEN in .env}
+    ports:
+      - "8001:8001"
+
+  dashboard:
+    build:
+      context: ./dashboard
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:

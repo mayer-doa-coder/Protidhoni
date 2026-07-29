@@ -1,0 +1,222 @@
+openapi: 3.1.0
+info:
+  title: Protidhoni API
+  version: 1.0.0-phase0
+  description: |
+    Contract-first API for crisis reports. Public report ingestion is idempotent by
+    message_id. The report schema is shared at ./message-schema.json.
+servers:
+  - url: http://localhost:8000
+    description: Local development
+paths:
+  /health:
+    get:
+      operationId: health
+      summary: Return process health without exposing sensitive configuration.
+      responses:
+        '200':
+          description: Service is running.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+  /reports:
+    post:
+      operationId: ingestReports
+      summary: Idempotently ingest a batch of signed reports.
+      parameters:
+        - $ref: '#/components/parameters/RequestId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: './message-schema.json#/$defs/reportBatch'
+      responses:
+        '202':
+          description: Every report was accepted or was already stored.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IngestResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+    get:
+      operationId: listReports
+      summary: List reports in a time window and geographic bounding box.
+      parameters:
+        - name: since
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+        - name: bbox
+          in: query
+          required: false
+          description: WGS84 minLng,minLat,maxLng,maxLat.
+          schema:
+            type: string
+            pattern: '^-?\d+(\.\d+)?,-?\d+(\.\d+)?,-?\d+(\.\d+)?,-?\d+(\.\d+)?$'
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 100
+      responses:
+        '200':
+          description: Reports matching the filters.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportCollection'
+  /reports/{message_id}:
+    patch:
+      operationId: updateReportVerification
+      summary: Update responder-owned verification state for one report.
+      parameters:
+        - name: message_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerificationUpdate'
+      responses:
+        '200':
+          description: The updated report.
+          content:
+            application/json:
+              schema:
+                $ref: './message-schema.json#/$defs/report'
+        '404':
+          description: No report exists with that identifier.
+  /instructions:
+    post:
+      operationId: createInstruction
+      summary: Create a responder-originated instruction for later outbound delivery.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: './message-schema.json#/$defs/report'
+                - type: object
+                  properties:
+                    type:
+                      enum: [SAFE_ROUTE, INSTRUCTION]
+      responses:
+        '202':
+          description: Instruction accepted for outbound delivery.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InstructionResponse'
+  /ai/classify:
+    post:
+      operationId: classifyReport
+      summary: Internal endpoint for AI classification and enrichment.
+      security:
+        - InternalServiceToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: './message-schema.json#/$defs/report'
+      responses:
+        '200':
+          description: Classification result; Phase 1 defines the persisted enrichment flow.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClassificationResult'
+components:
+  parameters:
+    RequestId:
+      name: X-Request-Id
+      in: header
+      required: false
+      schema:
+        type: string
+        format: uuid
+  schemas:
+    HealthResponse:
+      type: object
+      additionalProperties: false
+      required: [service, status, version]
+      properties:
+        service: { type: string, example: backend }
+        status: { type: string, const: ok }
+        version: { type: string, example: 0.1.0 }
+    IngestResult:
+      type: object
+      additionalProperties: false
+      required: [message_id, outcome]
+      properties:
+        message_id: { type: string, format: uuid }
+        outcome: { enum: [accepted, duplicate] }
+    IngestResponse:
+      type: object
+      additionalProperties: false
+      required: [results]
+      properties:
+        results:
+          type: array
+          items: { $ref: '#/components/schemas/IngestResult' }
+    ReportCollection:
+      type: object
+      additionalProperties: false
+      required: [reports, next_since]
+      properties:
+        reports:
+          type: array
+          items: { $ref: './message-schema.json#/$defs/report' }
+        next_since: { type: [string, 'null'], format: date-time }
+    VerificationUpdate:
+      type: object
+      additionalProperties: false
+      required: [status]
+      properties:
+        status: { enum: [unverified, corroborated, verified, disputed] }
+        responder_note: { type: string, maxLength: 1000 }
+    InstructionResponse:
+      type: object
+      additionalProperties: false
+      required: [message_id, delivery_status]
+      properties:
+        message_id: { type: string, format: uuid }
+        delivery_status: { const: queued }
+    ClassificationResult:
+      type: object
+      additionalProperties: false
+      required: [type, needs, priority, model]
+      properties:
+        type:
+          enum: [SOS, MEDICAL_NEED, RESOURCE_NEED, SAFETY_STATUS, SHELTER_INFO, HAZARD_UPDATE, SAFE_ROUTE, INSTRUCTION]
+        needs:
+          type: array
+          items: { type: string }
+        priority: { enum: [critical, high, medium, low] }
+        model: { type: string }
+  responses:
+    ValidationError:
+      description: Request body or parameter does not meet the contract.
+    RateLimited:
+      description: Request exceeded a future per-identity rate limit.
+  securitySchemes:
+    InternalServiceToken:
+      type: apiKey
+      in: header
+      name: X-Internal-Service-Token

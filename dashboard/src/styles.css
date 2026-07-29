@@ -1,0 +1,15 @@
+:root { color: #172033; background: #edf4f8; font-family: Inter, system-ui, sans-serif; }
+* { box-sizing: border-box; }
+body { margin: 0; }
+main { max-width: 1200px; margin: 0 auto; padding: 28px; }
+header { display: flex; align-items: center; justify-content: space-between; gap: 24px; margin-bottom: 20px; }
+h1 { margin: 0; font-size: clamp(1.7rem, 4vw, 2.7rem); }
+.eyebrow { color: #c2410c; font-weight: 700; letter-spacing: .08em; margin: 0 0 8px; text-transform: uppercase; }
+.healthy, .unhealthy { border-radius: 999px; font-weight: 700; margin: 0; padding: 8px 12px; }
+.healthy { background: #d1fae5; color: #065f46; }
+.unhealthy { background: #ffedd5; color: #9a3412; }
+.map-frame { position: relative; height: min(70vh, 650px); overflow: hidden; border-radius: 16px; box-shadow: 0 12px 40px #071a2c24; }
+.leaflet-container { height: 100%; width: 100%; }
+aside { background: #fffffff2; bottom: 16px; display: grid; gap: 8px; left: 16px; max-width: 360px; padding: 14px; position: absolute; z-index: 500; }
+aside span { font-size: .9rem; line-height: 1.4; }
+@media (max-width: 640px) { header { align-items: flex-start; flex-direction: column; } main { padding: 16px; } }

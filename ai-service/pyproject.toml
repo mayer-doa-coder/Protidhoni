@@ -1,0 +1,25 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "protidhoni-ai-service"
+version = "0.1.0"
+description = "Isolated AI/NLP service for Protidhoni"
+requires-python = ">=3.12,<3.15"
+dependencies = [
+  "fastapi>=0.115,<1.0",
+  "pydantic-settings>=2.7,<3.0",
+  "uvicorn[standard]>=0.34,<1.0"
+]
+
+[project.optional-dependencies]
+model = ["torch>=2.6,<3.0", "transformers>=4.48,<5.0"]
+dev = ["httpx>=0.28,<1.0", "pytest>=8.3,<9.0", "ruff>=0.9,<1.0"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/protidhoni_ai"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
