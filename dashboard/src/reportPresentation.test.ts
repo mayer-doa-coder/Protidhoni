@@ -1,7 +1,12 @@
 import {describe, expect, it} from 'vitest';
 
 import type {CrisisReport, ReportPriority} from './api';
-import {hasMappableLocation, priorityLabel, reportPinColour} from './reportPresentation';
+import {
+  allowedVerificationUpdates,
+  hasMappableLocation,
+  priorityLabel,
+  reportPinColour,
+} from './reportPresentation';
 
 describe('report presentation', () => {
   it('assigns a distinct colour to every priority including unscored', () => {
@@ -17,5 +22,12 @@ describe('report presentation', () => {
 
     report.location.lng = null;
     expect(hasMappableLocation(report)).toBe(false);
+  });
+
+  it('only offers verification transitions allowed by the responder workflow', () => {
+    expect(allowedVerificationUpdates('unverified')).toEqual(['corroborated', 'verified', 'disputed']);
+    expect(allowedVerificationUpdates('corroborated')).toEqual(['verified', 'disputed']);
+    expect(allowedVerificationUpdates('verified')).toEqual([]);
+    expect(allowedVerificationUpdates('disputed')).toEqual([]);
   });
 });

@@ -38,6 +38,8 @@ services:
       context: ./ai-service
     environment:
       PROTIDHONI_AI_INTERNAL_TOKEN: ${AI_INTERNAL_TOKEN:?Set AI_INTERNAL_TOKEN in .env}
+      PROTIDHONI_TRANSLATION_BASE_URL: ${TRANSLATION_BASE_URL:?Set TRANSLATION_BASE_URL in .env}
+      PROTIDHONI_TRANSLATION_API_KEY: ${TRANSLATION_API_KEY:-}
     ports:
       - "8001:8001"
 
