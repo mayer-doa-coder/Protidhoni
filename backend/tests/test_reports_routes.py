@@ -140,6 +140,36 @@ def test_ingest_enforces_the_per_sender_rate_limit(monkeypatch) -> None:
     assert outcomes == ["accepted", "accepted", "accepted", "rejected", "rejected"]
 
 
+def test_invalid_signatures_do_not_consume_the_verified_sender_quota(monkeypatch) -> None:
+    monkeypatch.setattr(
+        routes_module, "_sender_limiter", SenderRateLimiter(max_reports_per_minute=3)
+    )
+
+    async def fake_insert_report(pool, report):
+        return "accepted"
+
+    monkeypatch.setattr(routes_module.db, "insert_report", fake_insert_report)
+
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+
+    key = Ed25519PrivateKey.generate()
+    with _make_client() as client:
+        invalid_outcomes = []
+        for _ in range(3):
+            invalid_report = make_signed_report(private_key=key, corrupt_signature=True)
+            response = client.post("/reports", json={"reports": [invalid_report]})
+            invalid_outcomes.append(response.json()["results"][0]["outcome"])
+
+        valid_outcomes = []
+        for _ in range(4):
+            valid_report = make_signed_report(private_key=key)
+            response = client.post("/reports", json={"reports": [valid_report]})
+            valid_outcomes.append(response.json()["results"][0]["outcome"])
+
+    assert invalid_outcomes == ["rejected", "rejected", "rejected"]
+    assert valid_outcomes == ["accepted", "accepted", "accepted", "rejected"]
+
+
 def test_get_reports_rejects_bbox_out_of_wgs84_range() -> None:
     with _make_client() as client:
         response = client.get("/reports", params={"bbox": "200,10,190,20"})

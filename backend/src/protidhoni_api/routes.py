@@ -54,12 +54,17 @@ class ReportCollection(BaseModel):
     next_since: str | None
 
 
-def _verified_identity_or_none(report: Report) -> bool:
+def _verified_sender_hash_or_none(report: Report) -> str | None:
+    """Return the cryptographically verified sender identity, if valid.
+
+    Rate limiting must use this returned value, not an untrusted hash supplied
+    by the request. In particular, an invalid signature must never consume a
+    legitimate sender's quota.
+    """
     try:
-        verify_report_signature(report)
-        return True
+        return verify_report_signature(report).sender_pubkey_hash
     except SignatureVerificationError:
-        return False
+        return None
 
 
 @router.post("/reports", status_code=202, response_model=IngestResponse)
@@ -68,10 +73,11 @@ async def ingest_reports(
 ) -> IngestResponse:
     results: list[IngestResult] = []
     for report in batch.reports:
-        if not _sender_limiter.allow(report.sender_pubkey_hash):
+        verified_sender_hash = _verified_sender_hash_or_none(report)
+        if verified_sender_hash is None:
             results.append(IngestResult(message_id=report.message_id, outcome="rejected"))
             continue
-        if not _verified_identity_or_none(report):
+        if not _sender_limiter.allow(verified_sender_hash):
             results.append(IngestResult(message_id=report.message_id, outcome="rejected"))
             continue
         outcome = await db.insert_report(pool, report)
