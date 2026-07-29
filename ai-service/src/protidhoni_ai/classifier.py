@@ -13,10 +13,14 @@ import re
 from collections import Counter, defaultdict
 from collections.abc import Iterable
 from dataclasses import dataclass
+from typing import Protocol
 
 from .schemas import ClassificationReport, ClassificationResult, Priority, ReportType
 
-MODEL_NAME = "phase1-tfidf-rules-v1"
+RULE_MODEL_NAME = "phase1-tfidf-rules-v1"
+# Kept as a compatibility alias for Phase 1 callers. New application code
+# receives an explicit classifier instance from ``build_classifier``.
+MODEL_NAME = RULE_MODEL_NAME
 
 _TOKEN_RE = re.compile(r"[a-z0-9]+|[\u0980-\u09ff]+", re.IGNORECASE)
 
@@ -267,8 +271,42 @@ def _priority(
     return "low"
 
 
-def classify_report(report: ClassificationReport) -> ClassificationResult:
-    report_type = _classify_type(report.payload.text, report.type)
+@dataclass(frozen=True)
+class RuleBasedClassifier:
+    """Transparent default used until a real trained checkpoint is configured."""
+
+    model_name: str = RULE_MODEL_NAME
+
+    def classify_type(self, text: str, claimed_type: ReportType) -> ReportType:
+        return _classify_type(text, claimed_type)
+
+
+class TypeClassifier(Protocol):
+    model_name: str
+
+    def classify_type(self, text: str, claimed_type: ReportType) -> ReportType: ...
+
+
+def build_classifier(fine_tuned_model_path: str | None = None) -> TypeClassifier:
+    """Return the active type classifier without ever downloading a model.
+
+    A supplied checkpoint is intentionally loaded eagerly: using a configured
+    model path but silently falling back to rules would make operational model
+    provenance false. The optional dependency is imported only in that path.
+    """
+
+    if fine_tuned_model_path is None:
+        return RuleBasedClassifier()
+    from .model_classifier import FineTunedClassifier
+
+    return FineTunedClassifier.load(fine_tuned_model_path)
+
+
+def classify_report(
+    report: ClassificationReport, classifier: TypeClassifier | None = None
+) -> ClassificationResult:
+    active_classifier = classifier or RuleBasedClassifier()
+    report_type = active_classifier.classify_type(report.payload.text, report.type)
     needs = _extract_needs(report.payload.text, report.payload.needs)
     return ClassificationResult(
         type=report_type,
@@ -276,5 +314,5 @@ def classify_report(report: ClassificationReport) -> ClassificationResult:
         priority=_priority(
             report.payload.text, report_type, report.payload.people_count, needs
         ),
-        model=MODEL_NAME,
+        model=active_classifier.model_name,
     )

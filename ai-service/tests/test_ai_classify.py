@@ -28,6 +28,16 @@ def test_classify_is_unavailable_when_the_service_token_is_not_configured() -> N
     assert response.status_code == 503
 
 
+def test_classify_rejects_a_blank_internal_service_token_configuration() -> None:
+    response = TestClient(create_app(Settings(ai_internal_token="   "))).post(
+        "/ai/classify",
+        headers={"X-Internal-Service-Token": "anything"},
+        json=make_report(text="Need rescue now", language="en"),
+    )
+
+    assert response.status_code == 503
+
+
 def test_classify_returns_the_frozen_response_shape() -> None:
     response = make_client().post(
         "/ai/classify",
@@ -49,6 +59,19 @@ def test_classify_rejects_an_incomplete_non_contract_request() -> None:
         "/ai/classify",
         headers={"X-Internal-Service-Token": "test-token"},
         json={"type": "SOS", "payload": {"text": "help"}},
+    )
+
+    assert response.status_code == 422
+
+
+def test_classify_rejects_inconsistent_location_from_the_frozen_envelope() -> None:
+    report = make_report(text="Need rescue now", language="en")
+    report["location"] = {"lat": 23.8, "lng": 90.4, "accuracy_m": 5, "source": "none"}
+
+    response = make_client().post(
+        "/ai/classify",
+        headers={"X-Internal-Service-Token": "test-token"},
+        json=report,
     )
 
     assert response.status_code == 422

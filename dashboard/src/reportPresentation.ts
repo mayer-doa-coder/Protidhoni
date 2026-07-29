@@ -1,4 +1,4 @@
-import type {CrisisReport, ReportPriority} from './api';
+import type {CrisisReport, ReportPriority, VerificationStatus} from './api';
 
 const pinColours: Record<Exclude<ReportPriority, null> | 'unscored', string> = {
   critical: '#b91c1c',
@@ -20,4 +20,10 @@ export function hasMappableLocation(
 
 export function priorityLabel(priority: ReportPriority): string {
   return priority ?? 'unscored';
+}
+
+export function allowedVerificationUpdates(status: VerificationStatus): VerificationStatus[] {
+  if (status === 'unverified') return ['corroborated', 'verified', 'disputed'];
+  if (status === 'corroborated') return ['verified', 'disputed'];
+  return [];
 }

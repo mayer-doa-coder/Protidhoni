@@ -1,0 +1,8 @@
+{"text":"Synthetic held-out exercise: send rescue support now.","type":"SOS"}
+{"text":"Synthetic held-out exercise: an injured person requires a doctor.","type":"MEDICAL_NEED"}
+{"text":"Synthetic held-out exercise: request clean water and rice.","type":"RESOURCE_NEED"}
+{"text":"Synthetic held-out exercise: our team reached a safe location.","type":"SAFETY_STATUS"}
+{"text":"Synthetic held-out exercise: the mosque shelter can accept families.","type":"SHELTER_INFO"}
+{"text":"Synthetic held-out exercise: strong winds damaged the roadside trees.","type":"HAZARD_UPDATE"}
+{"text":"Synthetic held-out exercise: travel through the signed northern passage.","type":"SAFE_ROUTE"}
+{"text":"Synthetic held-out exercise: keep away from damaged electrical wires.","type":"INSTRUCTION"}

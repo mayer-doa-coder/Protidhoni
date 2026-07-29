@@ -1,0 +1,32 @@
+{"text":"Synthetic exercise: emergency rescue is needed.","type":"SOS"}
+{"text":"Demo scenario: people are trapped and need help.","type":"SOS"}
+{"text":"অনুশীলনী বার্তা: জরুরি উদ্ধার সহায়তা দরকার।","type":"SOS"}
+{"text":"কৃত্রিম মহড়ায় আটকে থাকা মানুষকে উদ্ধার করুন।","type":"SOS"}
+{"text":"Synthetic exercise: a first-aid medic is requested.","type":"MEDICAL_NEED"}
+{"text":"Demo scenario: a patient needs urgent treatment.","type":"MEDICAL_NEED"}
+{"text":"অনুশীলনী বার্তা: চিকিৎসা সহায়তা প্রয়োজন।","type":"MEDICAL_NEED"}
+{"text":"কৃত্রিম মহড়ায় একজন রোগীর ওষুধ দরকার।","type":"MEDICAL_NEED"}
+{"text":"Synthetic exercise: drinking water supplies are needed.","type":"RESOURCE_NEED"}
+{"text":"Demo scenario: food and blankets are requested.","type":"RESOURCE_NEED"}
+{"text":"অনুশীলনী বার্তা: খাবার ও বিশুদ্ধ পানি দরকার।","type":"RESOURCE_NEED"}
+{"text":"কৃত্রিম মহড়ায় শুকনো খাবার সরবরাহ করুন।","type":"RESOURCE_NEED"}
+{"text":"Synthetic exercise: our group is safe at the assembly point.","type":"SAFETY_STATUS"}
+{"text":"Demo scenario: all family members are accounted for.","type":"SAFETY_STATUS"}
+{"text":"অনুশীলনী বার্তা: আমরা নিরাপদ স্থানে আছি।","type":"SAFETY_STATUS"}
+{"text":"কৃত্রিম মহড়ায় সবাই নিরাপদ আছে।","type":"SAFETY_STATUS"}
+{"text":"Synthetic exercise: the community hall has temporary shelter space.","type":"SHELTER_INFO"}
+{"text":"Demo scenario: the school shelter is open with beds available.","type":"SHELTER_INFO"}
+{"text":"অনুশীলনী বার্তা: আশ্রয়কেন্দ্রে থাকার জায়গা আছে।","type":"SHELTER_INFO"}
+{"text":"কৃত্রিম মহড়ায় বিদ্যালয়টি অস্থায়ী আশ্রয়কেন্দ্র।","type":"SHELTER_INFO"}
+{"text":"Synthetic exercise: flood water is rising near the bridge.","type":"HAZARD_UPDATE"}
+{"text":"Demo scenario: a fallen power line makes this road dangerous.","type":"HAZARD_UPDATE"}
+{"text":"অনুশীলনী বার্তা: নদীর পানি দ্রুত বাড়ছে।","type":"HAZARD_UPDATE"}
+{"text":"কৃত্রিম মহড়ায় রাস্তার পাশে ভূমিধসের ঝুঁকি আছে।","type":"HAZARD_UPDATE"}
+{"text":"Synthetic exercise: the east road is clear for evacuation.","type":"SAFE_ROUTE"}
+{"text":"Demo scenario: use the marked route to reach the shelter.","type":"SAFE_ROUTE"}
+{"text":"অনুশীলনী বার্তা: পূর্বের রাস্তা চলাচলের জন্য নিরাপদ।","type":"SAFE_ROUTE"}
+{"text":"কৃত্রিম মহড়ায় নির্ধারিত পথে আশ্রয়কেন্দ্রে যান।","type":"SAFE_ROUTE"}
+{"text":"Synthetic exercise: boil water before drinking it.","type":"INSTRUCTION"}
+{"text":"Demo scenario: remain indoors until the alert ends.","type":"INSTRUCTION"}
+{"text":"অনুশীলনী বার্তা: পানি ফুটিয়ে পান করুন।","type":"INSTRUCTION"}
+{"text":"কৃত্রিম মহড়ায় নির্দেশনা না পাওয়া পর্যন্ত অপেক্ষা করুন।","type":"INSTRUCTION"}
