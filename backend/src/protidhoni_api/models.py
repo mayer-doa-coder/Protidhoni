@@ -49,16 +49,15 @@ class Location(BaseModel):
     source: LocationSource
 
     @model_validator(mode="after")
-    def _check_source_consistency(self) -> "Location":
+    def _check_source_consistency(self) -> Location:
         if self.source == "none":
             if self.lat is not None or self.lng is not None or self.accuracy_m is not None:
                 raise ValueError("location.source 'none' requires lat, lng, and accuracy_m to be null")
         elif self.source == "gps":
             if self.lat is None or self.lng is None or self.accuracy_m is None:
                 raise ValueError("location.source 'gps' requires lat, lng, and accuracy_m")
-        elif self.source == "manual":
-            if self.lat is None or self.lng is None:
-                raise ValueError("location.source 'manual' requires lat and lng")
+        elif self.source == "manual" and (self.lat is None or self.lng is None):
+            raise ValueError("location.source 'manual' requires lat and lng")
         return self
 
 
@@ -71,7 +70,7 @@ class Payload(BaseModel):
     attachment_ref: str | None = None
 
     @model_validator(mode="after")
-    def _check_formats(self) -> "Payload":
+    def _check_formats(self) -> Payload:
         for need in self.needs:
             if not (1 <= len(need) <= 64):
                 raise ValueError("each payload.needs entry must be 1-64 characters")
@@ -89,7 +88,7 @@ class Signature(BaseModel):
     value: str
 
     @model_validator(mode="after")
-    def _check_value_format(self) -> "Signature":
+    def _check_value_format(self) -> Signature:
         if not _SIGNATURE_VALUE_RE.match(self.value):
             raise ValueError("signature.value must be 86 base64url characters (64 raw bytes, unpadded)")
         return self
@@ -130,7 +129,7 @@ class Report(BaseModel):
     verification: Verification
 
     @model_validator(mode="after")
-    def _check_identifiers(self) -> "Report":
+    def _check_identifiers(self) -> Report:
         try:
             import uuid
 

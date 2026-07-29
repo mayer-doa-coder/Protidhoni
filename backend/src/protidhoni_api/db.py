@@ -73,11 +73,10 @@ async def insert_report(pool: AsyncConnectionPool, report: Report) -> IngestOutc
         "verification_status": report.verification.status,
         "corroboration_count": report.verification.corroboration_count,
     }
-    async with pool.connection() as conn:
-        async with conn.cursor() as cur:
-            await cur.execute(_INSERT_SQL, params)
-            row = await cur.fetchone()
-            return "accepted" if row is not None else "duplicate"
+    async with pool.connection() as conn, conn.cursor() as cur:
+        await cur.execute(_INSERT_SQL, params)
+        row = await cur.fetchone()
+        return "accepted" if row is not None else "duplicate"
 
 
 async def list_reports(
@@ -96,10 +95,9 @@ async def list_reports(
         "max_lat": max_lat,
         "limit": limit,
     }
-    async with pool.connection() as conn:
-        async with conn.cursor(row_factory=dict_row) as cur:
-            await cur.execute(_SELECT_SQL, params)
-            rows = await cur.fetchall()
+    async with pool.connection() as conn, conn.cursor(row_factory=dict_row) as cur:
+        await cur.execute(_SELECT_SQL, params)
+        rows = await cur.fetchall()
 
     reports: list[dict] = []
     latest_received_at: datetime | None = None

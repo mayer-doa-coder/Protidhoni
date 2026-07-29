@@ -12,7 +12,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import rfc8785
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
@@ -65,7 +65,7 @@ def make_signed_report(
         "type": report_type,
         "sender_pubkey": pubkey_b64,
         "sender_pubkey_hash": pubkey_hash_b64,
-        "created_at": created_at or datetime.now(timezone.utc).isoformat(),
+        "created_at": created_at or datetime.now(UTC).isoformat(),
         "language": language,
         "location": location
         if location is not None

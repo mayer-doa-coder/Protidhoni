@@ -12,7 +12,7 @@ during exactly the bursty, multi-source conditions it exists for.
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Literal
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from psycopg_pool import AsyncConnectionPool
@@ -69,7 +69,8 @@ def _verified_sender_hash_or_none(report: Report) -> str | None:
 
 @router.post("/reports", status_code=202, response_model=IngestResponse)
 async def ingest_reports(
-    batch: ReportBatch, pool: AsyncConnectionPool = Depends(get_db_pool)
+    batch: ReportBatch,
+    pool: Annotated[AsyncConnectionPool, Depends(get_db_pool)],
 ) -> IngestResponse:
     results: list[IngestResult] = []
     for report in batch.reports:
@@ -87,10 +88,10 @@ async def ingest_reports(
 
 @router.get("/reports", response_model=ReportCollection)
 async def get_reports(
-    since: datetime | None = Query(default=None),
-    bbox: str | None = Query(default=None, pattern=_BBOX_PATTERN),
-    limit: int = Query(default=100, ge=1, le=200),
-    pool: AsyncConnectionPool = Depends(get_db_pool),
+    pool: Annotated[AsyncConnectionPool, Depends(get_db_pool)],
+    since: Annotated[datetime | None, Query()] = None,
+    bbox: Annotated[str | None, Query(pattern=_BBOX_PATTERN)] = None,
+    limit: Annotated[int, Query(ge=1, le=200)] = 100,
 ) -> ReportCollection:
     bbox_tuple: tuple[float, float, float, float] | None = None
     if bbox is not None:

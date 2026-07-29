@@ -27,7 +27,7 @@ import {startAutoSync} from './src/sync/sync';
  *   - A real phone on the same Wi-Fi as the machine running
  *     `docker compose up`: that machine's LAN IP, e.g. 'http://192.168.1.42:8000'.
  */
-const API_BASE_URL = 'http://10.0.2.2:8000';
+const API_BASE_URL = 'http://192.168.0.117:8000';
 
 const endpointName = `Protidhoni-${Math.random().toString(36).slice(2, 8)}`;
 
