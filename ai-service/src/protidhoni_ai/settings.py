@@ -8,6 +8,7 @@ class Settings(BaseSettings):
 
     model_id: str = "csebuetnlp/banglabert"
     app_version: str = "0.1.0"
+    ai_internal_token: str | None = None
 
 
 @lru_cache
