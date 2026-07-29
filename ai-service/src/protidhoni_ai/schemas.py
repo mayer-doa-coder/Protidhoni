@@ -2,7 +2,7 @@ import re
 import uuid
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 ReportType = Literal[
     "SOS",
@@ -15,6 +15,7 @@ ReportType = Literal[
     "INSTRUCTION",
 ]
 Priority = Literal["critical", "high", "medium", "low"]
+Language = Literal["bn", "en"]
 
 _DEVICE_HASH_RE = re.compile(r"^[A-Za-z0-9_-]{43}$")
 _SIGNATURE_RE = re.compile(r"^[A-Za-z0-9_-]{86}$")
@@ -87,6 +88,32 @@ class VerificationInput(BaseModel):
     corroboration_count: int = Field(ge=0)
 
 
+class InternalTranslationRequest(BaseModel):
+    """Private AI-service request defined by contracts/openapi.yaml v1.2.0."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    text: str = Field(min_length=1, max_length=2000)
+    source_language: Language
+    target_language: Language
+
+    @field_validator("text")
+    @classmethod
+    def check_non_blank_text(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("translation text must not be blank")
+        return value
+
+
+class InternalTranslationResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    text: str = Field(min_length=1, max_length=4000)
+    source_language: Language
+    target_language: Language
+    provider: str = Field(min_length=1, max_length=64)
+
+
 class ClassificationReport(BaseModel):
     """The frozen report envelope consumed by the isolated AI service.
 
@@ -103,7 +130,7 @@ class ClassificationReport(BaseModel):
     sender_pubkey: str
     sender_pubkey_hash: str
     created_at: str
-    language: Literal["bn", "en"]
+    language: Language
     location: LocationInput
     payload: PayloadInput
     priority: Priority | None

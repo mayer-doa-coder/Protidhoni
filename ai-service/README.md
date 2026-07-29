@@ -54,7 +54,7 @@ The probe loads the tokenizer and pretrained model, runs one Bangla tokenization
 
 `src/protidhoni_ai/translation.py` provides an opt-in adapter for a self-hosted or managed LibreTranslate-compatible provider. Configure `PROTIDHONI_TRANSLATION_BASE_URL` and, when needed, `PROTIDHONI_TRANSLATION_API_KEY`. It sends plain text only when a caller explicitly requests a translation; otherwise it raises a clear unavailable error and the original report text must remain visible.
 
-There is intentionally no `/ai/translate` route yet. Adding an API route or a translated field to the report response requires a synchronous, versioned change to the frozen shared contract. This prevents the dashboard from either leaking its internal token to browsers or falsely claiming a translation exists.
+The approved `1.2.0-phase2` contract exposes `POST /ai/translate` only to the backend over the internal service network. It requires `X-Internal-Service-Token`, accepts exactly `{text, source_language, target_language}`, and returns a labelled provider result. The public dashboard calls the backend's responder-authorized `POST /translations` endpoint with a report ID; it never receives this internal credential or sends raw report text directly to a provider.
 
 ## Tests
 
