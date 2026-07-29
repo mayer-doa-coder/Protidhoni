@@ -4,7 +4,10 @@ import {
   hasReport,
   initReportQueueSchema,
   listAllReports,
+  listReportRecords,
   listUnsyncedReports,
+  recordDeliveryResult,
+  recordSyncFailure,
   updateSyncStatus,
 } from "../queue";
 import { createNodeSqliteExecutor } from "../testSupport/nodeSqliteExecutor";
@@ -110,5 +113,78 @@ describe("report queue", () => {
       "a0000000-0000-4000-8000-000000000002",
       "a0000000-0000-4000-8000-000000000001",
     ]);
+  });
+
+  it("migrates a Phase 1 queue without deleting its reports", async () => {
+    const db = createNodeSqliteExecutor();
+    const report = makeReport();
+    await db.execute(`
+      CREATE TABLE report_queue (
+        message_id TEXT PRIMARY KEY,
+        report_json TEXT NOT NULL,
+        sync_status TEXT NOT NULL,
+        queued_at TEXT NOT NULL
+      )
+    `);
+    await db.execute(
+      `INSERT INTO report_queue (message_id, report_json, sync_status, queued_at) VALUES (?, ?, ?, ?)`,
+      [report.message_id, JSON.stringify(report), "local", "2026-07-30T00:00:00.000Z"],
+    );
+
+    await initReportQueueSchema(db);
+
+    const [record] = await listReportRecords(db);
+    expect(record.report.message_id).toBe(report.message_id);
+    expect(record.deliveryOutcome).toBeNull();
+    expect(record.deliveryFeedback).toBeNull();
+    expect(record.lastSyncAttemptAt).toBeNull();
+  });
+
+  it("persists accepted and duplicate delivery confirmation", async () => {
+    const db = await freshDb();
+    const accepted = makeReport({ message_id: "a0000000-0000-4000-8000-000000000001" });
+    const duplicate = makeReport({ message_id: "a0000000-0000-4000-8000-000000000002" });
+    await enqueueReport(db, accepted);
+    await enqueueReport(db, duplicate);
+
+    await recordDeliveryResult(db, accepted.message_id, "accepted", "2026-07-30T01:00:00.000Z");
+    await recordDeliveryResult(db, duplicate.message_id, "duplicate", "2026-07-30T01:01:00.000Z");
+
+    const records = await listReportRecords(db);
+    expect(records.map(record => record.deliveryOutcome).sort()).toEqual(["accepted", "duplicate"]);
+    expect(records.every(record => record.report.sync_status === "synced")).toBe(true);
+  });
+
+  it("keeps a rejected report queued with durable feedback", async () => {
+    const db = await freshDb();
+    const report = makeReport();
+    await enqueueReport(db, report);
+
+    await recordDeliveryResult(db, report.message_id, "rejected", "2026-07-30T02:00:00.000Z");
+
+    const [record] = await listReportRecords(db);
+    expect(record.report.sync_status).toBe("local");
+    expect(record.deliveryOutcome).toBe("rejected");
+    expect(record.deliveryFeedback).toContain("rejected");
+    expect(await listUnsyncedReports(db)).toHaveLength(1);
+  });
+
+  it("records connectivity feedback without erasing an earlier rejection", async () => {
+    const db = await freshDb();
+    const report = makeReport();
+    await enqueueReport(db, report);
+    await recordDeliveryResult(db, report.message_id, "rejected", "2026-07-30T02:00:00.000Z");
+    const [before] = await listReportRecords(db);
+
+    await recordSyncFailure(
+      db,
+      [report.message_id],
+      "Backend unreachable.",
+      "2026-07-30T03:00:00.000Z",
+    );
+
+    const [after] = await listReportRecords(db);
+    expect(after.deliveryFeedback).toBe(before.deliveryFeedback);
+    expect(after.lastSyncAttemptAt).toBe("2026-07-30T03:00:00.000Z");
   });
 });

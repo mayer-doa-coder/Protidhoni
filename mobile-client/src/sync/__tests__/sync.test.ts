@@ -1,5 +1,10 @@
 import type { CrisisReport } from "../../contracts/report";
-import { enqueueReport, initReportQueueSchema, listUnsyncedReports } from "../../db/queue";
+import {
+  enqueueReport,
+  initReportQueueSchema,
+  listReportRecords,
+  listUnsyncedReports,
+} from "../../db/queue";
 import { createNodeSqliteExecutor } from "../../db/testSupport/nodeSqliteExecutor";
 
 type NetInfoListener = (state: { isConnected: boolean | null; isInternetReachable: boolean | null }) => void;
@@ -57,8 +62,8 @@ function makeReport(overrides: Partial<CrisisReport> = {}): CrisisReport {
   };
 }
 
-function jsonResponse(body: unknown, ok = true): Response {
-  return { ok, json: async () => body } as Response;
+function jsonResponse(body: unknown, ok = true, status = ok ? 200 : 500): Response {
+  return { ok, status, json: async () => body } as Response;
 }
 
 describe("syncQueueToBackend", () => {
@@ -99,6 +104,8 @@ describe("syncQueueToBackend", () => {
       expect.objectContaining({ method: "POST" }),
     );
     expect(await listUnsyncedReports(db)).toHaveLength(0);
+    const records = await listReportRecords(db);
+    expect(records.map(record => record.deliveryOutcome).sort()).toEqual(["accepted", "duplicate"]);
   });
 
   it("leaves a rejected report queued (unsynced)", async () => {
@@ -113,6 +120,9 @@ describe("syncQueueToBackend", () => {
     await syncQueueToBackend(db, config);
 
     expect(await listUnsyncedReports(db)).toHaveLength(1);
+    const [record] = await listReportRecords(db);
+    expect(record.deliveryOutcome).toBe("rejected");
+    expect(record.deliveryFeedback).toContain("rejected");
   });
 
   it("leaves the queue untouched when the backend is unreachable", async () => {
@@ -125,6 +135,8 @@ describe("syncQueueToBackend", () => {
     await syncQueueToBackend(db, config);
 
     expect(await listUnsyncedReports(db)).toHaveLength(1);
+    const [record] = await listReportRecords(db);
+    expect(record.deliveryFeedback).toContain("unreachable");
   });
 
   it("leaves the queue untouched on a non-2xx response", async () => {
@@ -132,11 +144,48 @@ describe("syncQueueToBackend", () => {
     await initReportQueueSchema(db);
     await enqueueReport(db, makeReport());
 
-    (global.fetch as jest.Mock).mockResolvedValue(jsonResponse({}, false));
+    (global.fetch as jest.Mock).mockResolvedValue(jsonResponse({}, false, 503));
 
     await syncQueueToBackend(db, config);
 
     expect(await listUnsyncedReports(db)).toHaveLength(1);
+    const [record] = await listReportRecords(db);
+    expect(record.deliveryFeedback).toContain("HTTP 503");
+  });
+
+  it("records unreadable and structurally invalid success responses", async () => {
+    const db = createNodeSqliteExecutor();
+    await initReportQueueSchema(db);
+    await enqueueReport(db, makeReport());
+
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      status: 202,
+      json: async () => {
+        throw new SyntaxError("invalid JSON");
+      },
+    } as unknown as Response);
+    await syncQueueToBackend(db, config);
+    let [record] = await listReportRecords(db);
+    expect(record.deliveryFeedback).toContain("unreadable");
+
+    (global.fetch as jest.Mock).mockResolvedValueOnce(jsonResponse({ results: [{ bad: true }] }));
+    await syncQueueToBackend(db, config);
+    [record] = await listReportRecords(db);
+    expect(record.deliveryFeedback).toContain("incomplete");
+  });
+
+  it("keeps a report queued when the success response omits its message_id", async () => {
+    const db = createNodeSqliteExecutor();
+    await initReportQueueSchema(db);
+    await enqueueReport(db, makeReport());
+    (global.fetch as jest.Mock).mockResolvedValue(jsonResponse({ results: [] }));
+
+    await syncQueueToBackend(db, config);
+
+    const [record] = await listReportRecords(db);
+    expect(record.report.sync_status).toBe("local");
+    expect(record.deliveryFeedback).toContain("omitted");
   });
 
   it("splits more than 100 queued reports into multiple batched requests", async () => {

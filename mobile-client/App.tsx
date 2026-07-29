@@ -5,22 +5,22 @@ import {
   Platform,
   Pressable,
   type Permission,
-  SafeAreaView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
+import {SafeAreaProvider, SafeAreaView} from 'react-native-safe-area-context';
 
 import {getAppDatabase} from './src/db/appDatabase';
 import {startMeshRelay} from './src/mesh/relay';
 import {MyReportsScreen} from './src/screens/MyReportsScreen';
-import {SosFormScreen} from './src/screens/SosFormScreen';
+import {ReportFormScreen} from './src/screens/ReportFormScreen';
 import {NearbyConnections} from './src/native/NearbyConnections';
 import {startAutoSync} from './src/sync/sync';
 
 /**
  * Where this device POSTs its queue when it regains connectivity
- * (src/sync/sync.ts). There is no settings UI for this in Phase 1 — set it
+ * (src/sync/sync.ts). There is no settings UI yet — set it
  * for your demo network before building:
  *   - Android emulator: the default below (10.0.2.2 is the emulator's alias
  *     for the host machine's localhost).
@@ -52,7 +52,7 @@ async function requestNearbyPermissions(): Promise<boolean> {
   return permissions.every(permission => results[permission] === PermissionsAndroid.RESULTS.GRANTED);
 }
 
-type Tab = 'sos' | 'reports' | 'mesh';
+type Tab = 'create' | 'reports' | 'mesh';
 
 function TabButton({label, active, onPress}: {label: string; active: boolean; onPress: () => void}) {
   return (
@@ -136,7 +136,7 @@ function MeshScreen() {
 }
 
 function App() {
-  const [tab, setTab] = useState<Tab>('sos');
+  const [tab, setTab] = useState<Tab>('create');
 
   useEffect(() => {
     let stopRelay: (() => void) | undefined;
@@ -159,16 +159,18 @@ function App() {
   }, []);
 
   return (
-    <SafeAreaView style={styles.page}>
-      <View style={styles.tabBar}>
-        <TabButton label="SOS" active={tab === 'sos'} onPress={() => setTab('sos')} />
-        <TabButton label="My reports" active={tab === 'reports'} onPress={() => setTab('reports')} />
-        <TabButton label="Nearby" active={tab === 'mesh'} onPress={() => setTab('mesh')} />
-      </View>
-      {tab === 'sos' && <SosFormScreen />}
-      {tab === 'reports' && <MyReportsScreen />}
-      {tab === 'mesh' && <MeshScreen />}
-    </SafeAreaView>
+    <SafeAreaProvider>
+      <SafeAreaView style={styles.page}>
+        <View style={styles.tabBar}>
+          <TabButton label="Create" active={tab === 'create'} onPress={() => setTab('create')} />
+          <TabButton label="My reports" active={tab === 'reports'} onPress={() => setTab('reports')} />
+          <TabButton label="Nearby" active={tab === 'mesh'} onPress={() => setTab('mesh')} />
+        </View>
+        {tab === 'create' && <ReportFormScreen />}
+        {tab === 'reports' && <MyReportsScreen />}
+        {tab === 'mesh' && <MeshScreen />}
+      </SafeAreaView>
+    </SafeAreaProvider>
   );
 }
 
