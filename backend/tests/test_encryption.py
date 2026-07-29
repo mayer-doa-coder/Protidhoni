@@ -9,6 +9,7 @@ from protidhoni_api.encryption import (
     decrypt_sensitive_text,
     encrypt_sensitive_report_dict,
     encrypt_sensitive_text,
+    location_coordinate_for_query_index,
 )
 from protidhoni_api.models import Report
 
@@ -140,9 +141,9 @@ def test_insert_params_stores_ciphertext_for_medical_need_and_report_from_row_de
     stored_payload = params["payload"].obj
     assert stored_raw_message["payload"]["text"] != "insulin needed urgently"
     assert stored_payload["text"] != "insulin needed urgently"
-    # The parallel geography-column params must stay plaintext floats for bbox queries.
-    assert params["lat"] == report.location.lat
-    assert params["lng"] == report.location.lng
+    # The parallel geography-column params stay queryable, but not exact.
+    assert params["lat"] == 23.81
+    assert params["lng"] == 90.41
 
     fake_row = {
         "raw_message": stored_raw_message,
@@ -159,9 +160,50 @@ def test_insert_params_stores_ciphertext_for_medical_need_and_report_from_row_de
 
 
 def test_insert_params_leaves_non_sensitive_report_types_as_plaintext(configured_key) -> None:
-    report = Report.model_validate(make_signed_report(report_type="HAZARD_UPDATE"))
+    report = Report.model_validate(
+        make_signed_report(
+            report_type="HAZARD_UPDATE",
+            location={"lat": 23.81491, "lng": 90.41478, "accuracy_m": 5.0, "source": "gps"},
+        )
+    )
 
     params = db._insert_params(report)
 
     assert params["raw_message"].obj["payload"]["text"] == report.payload.text
     assert params["payload"].obj["text"] == report.payload.text
+    assert params["lat"] == 23.81491
+    assert params["lng"] == 90.41478
+
+
+def test_sensitive_report_query_location_is_rounded_but_retrieved_location_is_exact(
+    configured_key,
+) -> None:
+    report = Report.model_validate(
+        make_signed_report(
+            report_type="SOS",
+            location={"lat": 23.81491, "lng": 90.41478, "accuracy_m": 5.0, "source": "gps"},
+        )
+    )
+
+    params = db._insert_params(report)
+
+    assert params["lat"] == 23.81
+    assert params["lng"] == 90.41
+
+    fake_row = {
+        "raw_message": params["raw_message"].obj,
+        "priority": report.priority,
+        "verification_status": report.verification.status,
+        "corroboration_count": report.verification.corroboration_count,
+    }
+    reconstructed = db._report_from_row(fake_row)
+
+    assert reconstructed.location.lat == 23.81491
+    assert reconstructed.location.lng == 90.41478
+
+
+def test_query_location_minimisation_is_only_for_sensitive_report_types() -> None:
+    assert location_coordinate_for_query_index(23.81491, "SOS") == 23.81
+    assert location_coordinate_for_query_index(23.81491, "MEDICAL_NEED") == 23.81
+    assert location_coordinate_for_query_index(23.81491, "SHELTER_INFO") == 23.81491
+    assert location_coordinate_for_query_index(None, "SOS") is None

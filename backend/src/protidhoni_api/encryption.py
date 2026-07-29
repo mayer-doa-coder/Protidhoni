@@ -7,11 +7,11 @@ only — the two types most likely to carry a specific person's situation and
 whereabouts — using Fernet (AES128-CBC + HMAC-SHA256) from the ``cryptography``
 package, already a direct dependency for Ed25519 verification (see crypto.py).
 
-This only protects the JSONB copies (``reports.raw_message`` and
-``reports.payload``) stored in Postgres. It deliberately does NOT touch the
-parallel PostGIS ``reports.location`` geography column, which must stay
-plaintext for ``ST_MakeEnvelope``/``&&`` bbox queries to keep working; that
-tradeoff is documented in backend/README.md.
+Exact coordinates are encrypted in the JSONB copies (``reports.raw_message``
+and ``reports.payload``). The parallel PostGIS ``reports.location`` geography
+column is kept queryable, but SOS/MEDICAL_NEED coordinates are rounded before
+storage so bbox filtering can work without storing exact vulnerable-person
+locations twice.
 """
 
 from __future__ import annotations
@@ -23,6 +23,7 @@ from cryptography.fernet import Fernet, InvalidToken
 from .config import get_settings
 
 SENSITIVE_REPORT_TYPES = frozenset({"SOS", "MEDICAL_NEED"})
+SENSITIVE_LOCATION_DECIMAL_PLACES = 2
 
 
 class EncryptionKeyError(RuntimeError):
@@ -99,3 +100,10 @@ def decrypt_sensitive_report_dict(report_dict: dict, report_type: str) -> dict:
     restored["location"]["lat"] = _decrypt_number(restored["location"]["lat"])
     restored["location"]["lng"] = _decrypt_number(restored["location"]["lng"])
     return restored
+
+
+def location_coordinate_for_query_index(value: float | None, report_type: str) -> float | None:
+    """Return the coordinate safe to store in the plaintext PostGIS query column."""
+    if value is None or report_type not in SENSITIVE_REPORT_TYPES:
+        return value
+    return round(value, SENSITIVE_LOCATION_DECIMAL_PLACES)

@@ -1,12 +1,12 @@
 """Report persistence: idempotent ingestion and bbox/time-windowed reads.
 
 Only the columns backend/db/init.sql defines are touched here. ``raw_message``
-holds the complete client-signed report exactly as received, so GET /reports
-can reconstruct the full contract shape without re-deriving it; ``priority``,
-``verification_status``, and ``corroboration_count`` are read from their own
-columns (not from raw_message) because those are server-owned fields that
-Phase 2's PATCH /reports/{id} will update independently of the original
-signed content.
+holds the server's retrievable copy of the signed report. For sensitive
+SOS/MEDICAL_NEED reports, that copy encrypts exact text/location before
+storage and decrypts on read; ``priority``, ``verification_status``, and
+``corroboration_count`` are read from their own columns (not from raw_message)
+because those are server-owned fields that Phase 2's PATCH /reports/{id}
+will update independently of the original signed content.
 """
 
 from __future__ import annotations
@@ -120,12 +120,14 @@ def _report_from_row(row: dict) -> Report:
 
 
 def _insert_params(report: Report) -> dict:
-    # Only the JSONB copies (raw_message, payload) are encrypted for SOS/MEDICAL_NEED;
-    # the geography `location` column below stays plaintext so bbox queries keep working
-    # (see encryption.py's module docstring for the reasoning).
+    # Sensitive reports keep exact coordinates only in encrypted JSONB.
+    # The plaintext geography column is rounded so bbox queries remain useful
+    # without storing exact vulnerable-person locations twice.
     stored_raw_message = encryption.encrypt_sensitive_report_dict(
         report.model_dump(mode="json"), report.type
     )
+    query_lat = encryption.location_coordinate_for_query_index(report.location.lat, report.type)
+    query_lng = encryption.location_coordinate_for_query_index(report.location.lng, report.type)
     return {
         "message_id": report.message_id,
         "sender_pubkey_hash": report.sender_pubkey_hash,
@@ -133,8 +135,8 @@ def _insert_params(report: Report) -> dict:
         "report_type": report.type,
         "language": report.language,
         "payload": Jsonb(stored_raw_message["payload"]),
-        "lat": report.location.lat,
-        "lng": report.location.lng,
+        "lat": query_lat,
+        "lng": query_lng,
         "raw_message": Jsonb(stored_raw_message),
         "priority": report.priority,
         "verification_status": report.verification.status,

@@ -38,7 +38,7 @@ Per `Protidhoni_Roadmap.md` §5.5, this service states plainly what it collects 
 
 ## Encryption at rest
 
-`payload.text` and `location.lat`/`location.lng` are encrypted (Fernet, AES128-CBC + HMAC-SHA256) before being stored in the `reports.raw_message` and `reports.payload` JSONB columns, but **only** for `SOS` and `MEDICAL_NEED` reports — the two types most likely to carry a specific vulnerable person's situation and exact whereabouts. Other report types are stored as plaintext JSONB, since they're meant to be broadly legible to responders without a decrypt step. Encryption/decryption is transparent to callers: `GET /reports`, `PATCH /reports/{id}`, and `POST /translations` all return decrypted plaintext to authorized callers exactly as before.
+`payload.text` and exact `location.lat`/`location.lng` are encrypted (Fernet, AES128-CBC + HMAC-SHA256) before being stored in the `reports.raw_message` and `reports.payload` JSONB columns, but **only** for `SOS` and `MEDICAL_NEED` reports — the two types most likely to carry a specific vulnerable person's situation and exact whereabouts. Other report types are stored as plaintext JSONB, since they're meant to be broadly legible to responders without a decrypt step. Encryption/decryption is transparent to callers: `GET /reports`, `PATCH /reports/{id}`, and `POST /translations` all return decrypted plaintext to authorized callers exactly as before.
 
 Set `PROTIDHONI_DATA_ENCRYPTION_KEY` (a 32-byte urlsafe-base64 Fernet key) before ingesting any `SOS`/`MEDICAL_NEED` report — an unset or malformed key raises immediately rather than silently storing plaintext. Generate one with:
 
@@ -46,7 +46,7 @@ Set `PROTIDHONI_DATA_ENCRYPTION_KEY` (a 32-byte urlsafe-base64 Fernet key) befor
 python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
 ```
 
-**Documented limitation:** the parallel PostGIS `reports.location` geography column (used for `GET /reports`' bbox filtering) is **not** encrypted — only the JSONB copies are. Encrypting it would break `ST_MakeEnvelope`/`&&` bbox queries entirely. This is a deliberate scope decision, not an oversight — the JSONB columns are what a database backup/dump or an at-rest storage compromise would expose first, and are the parts this change actually protects.
+The parallel PostGIS `reports.location` geography column stays plaintext so `GET /reports?bbox=` can keep using PostGIS, but for `SOS` and `MEDICAL_NEED` reports it stores only coordinates rounded to two decimal places. The exact vulnerable-person coordinates remain available only in encrypted JSONB and are decrypted on authorized reads.
 
 ## Run locally
 
