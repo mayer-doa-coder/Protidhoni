@@ -18,6 +18,7 @@ from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 from psycopg_pool import AsyncConnectionPool
 
+from . import encryption
 from .models import Report, VerificationStatus, verification_transition_allowed
 
 IngestOutcome = Literal["accepted", "duplicate"]
@@ -107,7 +108,8 @@ class InstructionConflictError(ValueError):
 
 
 def _report_from_row(row: dict) -> Report:
-    report_dict = dict(row["raw_message"])
+    stored_dict = dict(row["raw_message"])
+    report_dict = encryption.decrypt_sensitive_report_dict(stored_dict, stored_dict["type"])
     report_dict["priority"] = row["priority"]
     report_dict["verification"] = {
         "status": row["verification_status"],
@@ -118,16 +120,22 @@ def _report_from_row(row: dict) -> Report:
 
 
 def _insert_params(report: Report) -> dict:
+    # Only the JSONB copies (raw_message, payload) are encrypted for SOS/MEDICAL_NEED;
+    # the geography `location` column below stays plaintext so bbox queries keep working
+    # (see encryption.py's module docstring for the reasoning).
+    stored_raw_message = encryption.encrypt_sensitive_report_dict(
+        report.model_dump(mode="json"), report.type
+    )
     return {
         "message_id": report.message_id,
         "sender_pubkey_hash": report.sender_pubkey_hash,
         "created_at": report.created_at,
         "report_type": report.type,
         "language": report.language,
-        "payload": Jsonb(report.payload.model_dump(mode="json")),
+        "payload": Jsonb(stored_raw_message["payload"]),
         "lat": report.location.lat,
         "lng": report.location.lng,
-        "raw_message": Jsonb(report.model_dump(mode="json")),
+        "raw_message": Jsonb(stored_raw_message),
         "priority": report.priority,
         "verification_status": report.verification.status,
         "corroboration_count": report.verification.corroboration_count,

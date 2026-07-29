@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     responder_token: SecretStr | None = None
     cors_origins: str = ""
     app_version: str = "0.1.0"
+    data_encryption_key: SecretStr | None = None
 
     @model_validator(mode="after")
     def _check_ai_service_url(self) -> "Settings":
