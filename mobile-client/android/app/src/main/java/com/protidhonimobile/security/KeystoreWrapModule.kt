@@ -60,8 +60,10 @@ class KeystoreWrapModule(
                 // This device reports API 28+ but has no real StrongBox hardware.
                 // Fall through to a TEE-backed (non-StrongBox) Keystore key below.
             }
+            keyGenerator.init(builder.setIsStrongBoxBacked(false).build())
+        } else {
+            keyGenerator.init(builder.build())
         }
-        keyGenerator.init(builder.setIsStrongBoxBacked(false).build())
         return keyGenerator.generateKey()
     }
 
