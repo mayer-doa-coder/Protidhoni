@@ -13,6 +13,11 @@
     <uses-permission android:minSdkVersion="31" android:name="android.permission.BLUETOOTH_SCAN" />
     <uses-permission android:minSdkVersion="32" android:name="android.permission.NEARBY_WIFI_DEVICES" />
     <uses-permission android:minSdkVersion="37" android:name="android.permission.ACCESS_LOCAL_NETWORK" />
+    <!-- Phase 1: the SOS form's "use GPS" option needs real device location,
+         independent of the Nearby Connections radio-scanning permissions
+         above (which are capped at maxSdkVersion 31 for their own reasons
+         and must not be relied on for this). Not SDK-capped. -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
 
     <application
       android:name=".MainApplication"

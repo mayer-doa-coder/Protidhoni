@@ -1,10 +1,12 @@
 import {NativeEventEmitter, NativeModules} from 'react-native';
 
 type Endpoint = {endpointId: string; name: string};
+type PayloadReceived = {endpointId: string; dataBase64: string};
 
 type NearbyNativeModule = {
   start(endpointName: string): Promise<void>;
   stop(): Promise<void>;
+  sendPayload(endpointId: string, dataBase64: string): Promise<void>;
   addListener(eventName: string): void;
   removeListeners(count: number): void;
 };
@@ -20,6 +22,10 @@ const events = new NativeEventEmitter(nativeModule);
 export const NearbyConnections = {
   start: (endpointName: string) => nativeModule.start(endpointName),
   stop: () => nativeModule.stop(),
+  sendPayload: (endpointId: string, dataBase64: string) => nativeModule.sendPayload(endpointId, dataBase64),
   onEndpointFound: (listener: (endpoint: Endpoint) => void) => events.addListener('endpointFound', listener),
   onEndpointLost: (listener: (endpoint: Pick<Endpoint, 'endpointId'>) => void) => events.addListener('endpointLost', listener),
+  onConnected: (listener: (endpoint: Pick<Endpoint, 'endpointId'>) => void) => events.addListener('connected', listener),
+  onDisconnected: (listener: (endpoint: Pick<Endpoint, 'endpointId'>) => void) => events.addListener('disconnected', listener),
+  onPayloadReceived: (listener: (payload: PayloadReceived) => void) => events.addListener('payloadReceived', listener),
 };

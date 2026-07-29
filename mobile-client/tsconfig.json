@@ -11,7 +11,7 @@
     "skipLibCheck": true,
     "strict": true,
     "target": "ES2022",
-    "types": ["jest", "react", "react-native"]
+    "types": ["jest", "react", "react-native", "node"]
   },
   "include": ["App.tsx", "src/**/*.ts", "src/**/*.tsx", "__tests__/**/*.ts", "__tests__/**/*.tsx"],
   "exclude": ["node_modules", "ios/Pods"]
