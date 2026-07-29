@@ -25,16 +25,18 @@ import com.google.android.gms.nearby.connection.Strategy
  * Phase 1: advertises, discovers, connects, and exchanges report payloads
  * with nearby peers over Nearby Connections' P2P_CLUSTER strategy.
  *
- * Phase 1 deliberately auto-accepts every incoming connection and
- * auto-requests a connection to every discovered endpoint, with no digits
- * confirmation prompt shown to the user. That pairing UX hardening (comparing
- * `connectionInfo.authenticationDigits` between the two devices before
- * accepting) is Phase 3 security-hardening work, not Phase 1 scope — see
- * mobile-client/README.md. It does not affect message authenticity: every
- * report is Ed25519-signed by its original sender (src/crypto/sign.ts) and
- * verified against that signature by the backend independent of which
- * devices relayed it, so a blindly-accepted connection can carry signed
- * reports without being trusted as their author.
+ * Phase 1 deliberately auto-requested a connection to every discovered
+ * endpoint and auto-accepted every incoming one, with no confirmation prompt
+ * shown to the user. Phase 3 hardens the accept side: `onConnectionInitiated`
+ * now emits `connectionRequested` with Nearby Connections' authentication
+ * digits and waits for the JS layer to call `respondToConnection` — see
+ * mobile-client/README.md. This still does not affect message authenticity
+ * either way: every report is Ed25519-signed by its original sender
+ * (src/crypto/sign.ts) and verified against that signature by the backend
+ * independent of which devices relayed it, so a connection accepted without
+ * confirmation could never have carried a forged report — pairing
+ * confirmation guards against unwanted relay traffic/battery use from
+ * strangers, not message trust.
  */
 class NearbyConnectionsModule(
     private val reactContext: ReactApplicationContext,
@@ -64,10 +66,13 @@ class NearbyConnectionsModule(
     private val lifecycleCallback = object : ConnectionLifecycleCallback() {
         override fun onConnectionInitiated(endpointId: String, connectionInfo: ConnectionInfo) {
             emit(
-                "connectionInitiated",
-                mapOf("endpointId" to endpointId, "name" to connectionInfo.endpointName),
+                "connectionRequested",
+                mapOf(
+                    "endpointId" to endpointId,
+                    "name" to connectionInfo.endpointName,
+                    "authenticationDigits" to connectionInfo.authenticationDigits,
+                ),
             )
-            client.acceptConnection(endpointId, payloadCallback)
         }
 
         override fun onConnectionResult(endpointId: String, result: ConnectionResolution) {
@@ -123,6 +128,18 @@ class NearbyConnectionsModule(
         client.stopAllEndpoints()
         localEndpointName = null
         promise.resolve(null)
+    }
+
+    @ReactMethod
+    fun respondToConnection(endpointId: String, accept: Boolean, promise: Promise) {
+        val task = if (accept) {
+            client.acceptConnection(endpointId, payloadCallback)
+        } else {
+            client.rejectConnection(endpointId)
+        }
+        task
+            .addOnFailureListener { error -> promise.reject("CONNECTION_RESPONSE_FAILED", error) }
+            .addOnSuccessListener { promise.resolve(null) }
     }
 
     @ReactMethod

@@ -8,6 +8,10 @@ import {createNodeSqliteExecutor} from '../../db/testSupport/nodeSqliteExecutor'
 import {REPORT_FORM_CONFIGS} from '../reportFormConfig';
 import {buildReportDraft, type ReportFormValues} from '../reportFormModel';
 
+// identity.ts (imported transitively via ../../crypto/sign) wraps the device
+// key via the native KeystoreWrap module; see src/native/__mocks__/KeystoreWrap.ts.
+jest.mock('../../native/KeystoreWrap');
+
 function validValues(overrides: Partial<ReportFormValues> = {}): ReportFormValues {
   return {
     type: 'SOS',

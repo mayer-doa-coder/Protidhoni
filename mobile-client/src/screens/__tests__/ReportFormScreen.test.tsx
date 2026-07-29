@@ -12,6 +12,11 @@ jest.mock('@op-engineering/op-sqlite', () => ({
   })),
 }));
 
+// identity.ts (imported transitively via ../ReportFormScreen -> crypto/sign)
+// wraps the device key via the native KeystoreWrap module; see
+// src/native/__mocks__/KeystoreWrap.ts.
+jest.mock('../../native/KeystoreWrap');
+
 import {REPORT_FORM_CONFIGS} from '../../forms/reportFormConfig';
 import {ReportFormScreen} from '../ReportFormScreen';
 
