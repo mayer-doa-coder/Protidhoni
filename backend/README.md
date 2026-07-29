@@ -22,6 +22,32 @@ Generate a token from at least 32 cryptographically random bytes, store it only 
 [Convert]::ToBase64String([Security.Cryptography.RandomNumberGenerator]::GetBytes(32))
 ```
 
+## Data minimisation
+
+Per `Protidhoni_Roadmap.md` §5.5, this service states plainly what it collects and why, rather than silently accumulating more than the mission needs.
+
+**Collected, and why each field exists:**
+- `sender_pubkey_hash` — a pseudonymous device identity derived from an on-device Ed25519 key (`SHA-256(sender_pubkey)`). Needed to attribute a report to a consistent identity for rate limiting and corroboration counting, without ever knowing who that identity actually belongs to.
+- `payload.text` — the free-text report body a person chooses to write. Needed because it's the actual crisis content responders and the AI classifier act on.
+- `location.lat/lng` (optional, user- or GPS-supplied) — needed for the map view and bbox queries responders use to triage by area.
+- `payload.people_count` / `payload.needs` (optional) — structured hints (e.g. "medical", "shelter") needed so responders and the classifier can triage without re-reading full text every time.
+
+**Not collected, ever, by this backend:** phone numbers, contact lists, device MAC addresses, or real names. `sender_pubkey_hash` is cryptographic, not tied to hardware or carrier identity (see the Bridgefy lesson in `Protidhoni_Roadmap.md` §8) — a report can only reveal a real name or phone number if a user voluntarily types it into `payload.text`, in which case it's covered by the encryption-at-rest described below for the report types where that's most likely to matter.
+
+**Logging:** this service currently emits no application logs at all (`grep`-confirmed: no `logging`/`print` calls exist in `src/`). If logging is added later, `payload.text`, `location`, and `sender_pubkey` must never appear in a log line — log identifiers (`message_id`, outcome, HTTP status) instead.
+
+## Encryption at rest
+
+`payload.text` and exact `location.lat`/`location.lng` are encrypted (Fernet, AES128-CBC + HMAC-SHA256) before being stored in the `reports.raw_message` and `reports.payload` JSONB columns, but **only** for `SOS` and `MEDICAL_NEED` reports — the two types most likely to carry a specific vulnerable person's situation and exact whereabouts. Other report types are stored as plaintext JSONB, since they're meant to be broadly legible to responders without a decrypt step. Encryption/decryption is transparent to callers: `GET /reports`, `PATCH /reports/{id}`, and `POST /translations` all return decrypted plaintext to authorized callers exactly as before.
+
+Set `PROTIDHONI_DATA_ENCRYPTION_KEY` (a 32-byte urlsafe-base64 Fernet key) before ingesting any `SOS`/`MEDICAL_NEED` report — an unset or malformed key raises immediately rather than silently storing plaintext. Generate one with:
+
+```powershell
+python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+```
+
+The parallel PostGIS `reports.location` geography column stays plaintext so `GET /reports?bbox=` can keep using PostGIS, but for `SOS` and `MEDICAL_NEED` reports it stores only coordinates rounded to two decimal places. The exact vulnerable-person coordinates remain available only in encrypted JSONB and are decrypted on authorized reads.
+
 ## Run locally
 
 ```powershell
@@ -88,4 +114,6 @@ The self-contained suite covers signing, rate limiting, report validation, respo
 
 ## Deployment hand-off
 
-The Docker image is deployment-ready. Person A must connect this repository to the selected Render, Railway, or Fly.io project and set `PROTIDHONI_DATABASE_URL`, `PROTIDHONI_AI_INTERNAL_TOKEN`, and `PROTIDHONI_RESPONDER_TOKEN` as platform secrets, plus set `PROTIDHONI_CORS_ORIGINS` to the deployed dashboard origin; that account-level action is intentionally not performed from this repository.
+The Docker image is deployment-ready. Person A must connect this repository to the selected Render, Railway, or Fly.io project and set `PROTIDHONI_DATABASE_URL`, `PROTIDHONI_AI_INTERNAL_TOKEN`, `PROTIDHONI_RESPONDER_TOKEN`, and `PROTIDHONI_DATA_ENCRYPTION_KEY` as platform secrets, plus set `PROTIDHONI_CORS_ORIGINS` to the deployed dashboard origin; that account-level action is intentionally not performed from this repository.
+
+**TLS:** production traffic terminates TLS at the chosen host's edge (Render/Fly.io/Railway all provision this automatically for their default domains) — no backend code change is needed for the hackathon scope. Internal traffic between the backend, AI service, and Postgres stays on the private Docker Compose network and is not separately encrypted; this is a documented hackathon-scale tradeoff, not an oversight.
