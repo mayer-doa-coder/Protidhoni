@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Protidhoni API
-  version: 1.0.0-phase0
+  version: 1.1.0-phase2
   description: |
     Contract-first API for crisis reports. Public report ingestion is idempotent by
     message_id. The report schema is shared at ./message-schema.json.
@@ -79,6 +79,8 @@ paths:
     patch:
       operationId: updateReportVerification
       summary: Update responder-owned verification state for one report.
+      security:
+        - ResponderToken: []
       parameters:
         - name: message_id
           in: path
@@ -101,10 +103,18 @@ paths:
                 $ref: './message-schema.json#/$defs/report'
         '404':
           description: No report exists with that identifier.
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponder'
+        '409':
+          description: The requested verification-state transition is not allowed.
+        '503':
+          $ref: '#/components/responses/ResponderAuthUnavailable'
   /instructions:
     post:
       operationId: createInstruction
       summary: Create a responder-originated instruction for later outbound delivery.
+      security:
+        - ResponderToken: []
       requestBody:
         required: true
         content:
@@ -123,6 +133,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/InstructionResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponder'
+        '409':
+          description: The message identifier is already used by different content.
+        '503':
+          $ref: '#/components/responses/ResponderAuthUnavailable'
   /ai/classify:
     post:
       operationId: classifyReport
@@ -215,8 +233,17 @@ components:
       description: Request body or parameter does not meet the contract.
     RateLimited:
       description: Request exceeded a future per-identity rate limit.
+    UnauthorizedResponder:
+      description: The responder token is missing or invalid.
+    ResponderAuthUnavailable:
+      description: Responder authorization is not configured on this server.
   securitySchemes:
     InternalServiceToken:
       type: apiKey
       in: header
       name: X-Internal-Service-Token
+    ResponderToken:
+      type: apiKey
+      in: header
+      name: X-Responder-Token
+      description: Responder-only credential of at least 32 characters, configured through PROTIDHONI_RESPONDER_TOKEN.

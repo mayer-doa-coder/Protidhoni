@@ -102,6 +102,45 @@ class Verification(BaseModel):
     corroboration_count: int = Field(ge=0)
 
 
+class VerificationUpdate(BaseModel):
+    """Responder-owned fields accepted by PATCH /reports/{message_id}."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    status: VerificationStatus
+    responder_note: str | None = Field(default=None, max_length=1000)
+
+    @model_validator(mode="before")
+    @classmethod
+    def _reject_explicit_null_note(cls, value):
+        if isinstance(value, dict) and "responder_note" in value and value["responder_note"] is None:
+            raise ValueError("responder_note must be a string when provided")
+        return value
+
+    @property
+    def note_was_provided(self) -> bool:
+        return "responder_note" in self.model_fields_set
+
+
+_ALLOWED_VERIFICATION_TRANSITIONS: dict[VerificationStatus, frozenset[VerificationStatus]] = {
+    "unverified": frozenset({"unverified", "corroborated", "verified", "disputed"}),
+    "corroborated": frozenset({"corroborated", "verified", "disputed"}),
+    "verified": frozenset({"verified"}),
+    "disputed": frozenset({"disputed"}),
+}
+
+
+def verification_transition_allowed(
+    current: VerificationStatus, requested: VerificationStatus
+) -> bool:
+    """Enforce unverified → corroborated → verified, or terminal disputed.
+
+    Repeating the current state is idempotent. Verified and disputed are
+    terminal so a later request cannot silently erase an adjudicated result.
+    """
+    return requested in _ALLOWED_VERIFICATION_TRANSITIONS[current]
+
+
 def _validate_device_hash(value: str, field_name: str) -> str:
     if not _DEVICE_HASH_RE.match(value):
         raise ValueError(f"{field_name} must be 43 base64url characters (32 raw bytes, unpadded)")

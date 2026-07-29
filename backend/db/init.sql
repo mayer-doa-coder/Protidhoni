@@ -23,3 +23,22 @@ CREATE TABLE IF NOT EXISTS reports (
 
 CREATE INDEX IF NOT EXISTS reports_created_at_idx ON reports (created_at DESC);
 CREATE INDEX IF NOT EXISTS reports_location_idx ON reports USING GIST (location);
+
+-- Phase 2 responder-owned audit fields. IF NOT EXISTS makes this safe both for
+-- fresh databases and for the existing Phase 1 development volume.
+ALTER TABLE reports ADD COLUMN IF NOT EXISTS verification_note TEXT;
+ALTER TABLE reports ADD COLUMN IF NOT EXISTS verification_updated_at TIMESTAMPTZ;
+
+ALTER TABLE reports DROP CONSTRAINT IF EXISTS reports_verification_note_length;
+ALTER TABLE reports ADD CONSTRAINT reports_verification_note_length
+    CHECK (verification_note IS NULL OR char_length(verification_note) <= 1000);
+
+CREATE TABLE IF NOT EXISTS outbound_instructions (
+    message_id UUID PRIMARY KEY REFERENCES reports(message_id) ON DELETE CASCADE,
+    delivery_status TEXT NOT NULL DEFAULT 'queued' CHECK (delivery_status IN ('queued', 'delivered')),
+    queued_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    delivered_at TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS outbound_instructions_delivery_idx
+    ON outbound_instructions (delivery_status, queued_at);

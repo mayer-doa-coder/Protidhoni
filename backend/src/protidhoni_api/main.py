@@ -3,6 +3,7 @@ from typing import AsyncIterator
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from psycopg_pool import AsyncConnectionPool
 from pydantic import BaseModel
@@ -37,15 +38,28 @@ def create_app() -> FastAPI:
     """Create the API process. Phase 1 adds report persistence behind the
     frozen contract; database access is optional at startup so /health stays
     usable even when PROTIDHONI_DATABASE_URL is unset (e.g. this test suite)."""
+    settings = get_settings()
     app = FastAPI(
         title="Protidhoni API",
-        version=get_settings().app_version,
+        version=settings.app_version,
         docs_url="/docs",
         redoc_url=None,
         lifespan=_lifespan,
     )
 
     app.add_middleware(ClientIpRateLimitMiddleware)
+
+    allowed_origins = settings.allowed_cors_origins()
+    if allowed_origins:
+        # Add CORS last so it remains the outermost middleware and includes
+        # browser-readable CORS headers even on rate-limit/error responses.
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=allowed_origins,
+            allow_credentials=False,
+            allow_methods=["GET", "POST", "PATCH", "OPTIONS"],
+            allow_headers=["Content-Type", "X-Responder-Token"],
+        )
 
     @app.exception_handler(RequestValidationError)
     async def _contract_validation_error(request: Request, exc: RequestValidationError) -> JSONResponse:
