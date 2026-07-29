@@ -31,7 +31,7 @@ jest.mock('@react-native-community/geolocation', () => ({
 
 import App from '../App';
 
-test('renders the app (SOS tab by default) without crashing', async () => {
+test('renders the app (Create tab by default) without crashing', async () => {
   await act(async () => {
     create(<App />);
   });

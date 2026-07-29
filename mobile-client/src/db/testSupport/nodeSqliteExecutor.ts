@@ -14,7 +14,8 @@ export function createNodeSqliteExecutor(): SqliteExecutor {
   return {
     execute: async (sql: string, params: SqliteScalar[] = []) => {
       const stmt = db.prepare(sql);
-      if (sql.trim().toUpperCase().startsWith("SELECT")) {
+      const statementType = sql.trim().toUpperCase();
+      if (statementType.startsWith("SELECT") || statementType.startsWith("PRAGMA")) {
         const rows = stmt.all(...params) as unknown as SqliteRow[];
         return { rows, rowsAffected: 0 };
       }
