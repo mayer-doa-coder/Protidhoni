@@ -1,0 +1,127 @@
+{
+  "format": "protidhoni-lora-golden-v1",
+  "protocol": {
+    "version": 1,
+    "application_port": 256,
+    "meshtastic_payload_bytes": 233,
+    "header_bytes": 56,
+    "chunk_bytes": 177,
+    "max_report_bytes": 16384,
+    "max_fragments": 93
+  },
+  "vectors": [
+    {
+      "name": "bangla-sos-gps",
+      "report": {
+        "schema_version": "1.0.0",
+        "message_id": "123e4567-e89b-42d3-a456-426614174000",
+        "type": "SOS",
+        "sender_pubkey": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+        "sender_pubkey_hash": "Vkdap1RjR0wChd9dvyvKtz2mUTWIOem3dIGy6rEHcIw",
+        "created_at": "2026-07-30T09:15:00Z",
+        "language": "bn",
+        "location": {
+          "lat": 23.8103,
+          "lng": 90.4125,
+          "accuracy_m": 7.5,
+          "source": "gps"
+        },
+        "payload": {
+          "text": "বন্যার পানিতে তিনজন আটকা পড়েছে। দ্রুত উদ্ধার ও চিকিৎসা সহায়তা দরকার।",
+          "people_count": 3,
+          "needs": [
+            "rescue",
+            "medical"
+          ],
+          "attachment_ref": null
+        },
+        "priority": null,
+        "ttl_hops": 5,
+        "signature": {
+          "algorithm": "Ed25519",
+          "value": "BUylWho_NPQVK5VPAc71S589qBBxUxm0kAcARc_xDmFKKQrAJZpzmZHAr-isF-SEvHq5diiNXJKwqpNiY8aCBw"
+        },
+        "relay_path": [],
+        "sync_status": "local",
+        "verification": {
+          "status": "unverified",
+          "corroboration_count": 0
+        }
+      },
+      "canonical_payload_base64": "eyJjcmVhdGVkX2F0IjoiMjAyNi0wNy0zMFQwOToxNTowMFoiLCJsYW5ndWFnZSI6ImJuIiwibG9jYXRpb24iOnsiYWNjdXJhY3lfbSI6Ny41LCJsYXQiOjIzLjgxMDMsImxuZyI6OTAuNDEyNSwic291cmNlIjoiZ3BzIn0sIm1lc3NhZ2VfaWQiOiIxMjNlNDU2Ny1lODliLTQyZDMtYTQ1Ni00MjY2MTQxNzQwMDAiLCJwYXlsb2FkIjp7ImF0dGFjaG1lbnRfcmVmIjpudWxsLCJuZWVkcyI6WyJyZXNjdWUiLCJtZWRpY2FsIl0sInBlb3BsZV9jb3VudCI6MywidGV4dCI6IuCmrOCmqOCnjeCmr+CmvuCmsCDgpqrgpr7gpqjgpr/gpqTgp4cg4Kak4Ka/4Kao4Kac4KaoIOCmhuCmn+CmleCmviDgpqrgpqHgprzgp4fgppvgp4fgpaQg4Kam4KeN4Kaw4KeB4KakIOCmieCmpuCnjeCmp+CmvuCmsCDgppMg4Kaa4Ka/4KaV4Ka/4KeO4Ka44Ka+IOCmuOCmueCmvuCmr+CmvOCmpOCmviDgpqbgprDgppXgpr7gprDgpaQifSwicHJpb3JpdHkiOm51bGwsInJlbGF5X3BhdGgiOltdLCJzY2hlbWFfdmVyc2lvbiI6IjEuMC4wIiwic2VuZGVyX3B1YmtleSI6IkE2RUh2X1BPRUw0ZGNOMFk1MHZBbVdmazFqQ2JwUTFmSGR5R1pCSlZNYmciLCJzZW5kZXJfcHVia2V5X2hhc2giOiJWa2RhcDFSalIwd0NoZDlkdnl2S3R6Mm1VVFdJT2VtM2RJR3k2ckVIY0l3Iiwic2lnbmF0dXJlIjp7ImFsZ29yaXRobSI6IkVkMjU1MTkiLCJ2YWx1ZSI6IkJVeWxXaG9fTlBRVks1VlBBYzcxUzU4OXFCQnhVeG0wa0FjQVJjX3hEbUZLS1FyQUpacHptWkhBci1pc0YtU0V2SHE1ZGlpTlhKS3dxcE5pWThhQ0J3In0sInN5bmNfc3RhdHVzIjoibG9jYWwiLCJ0dGxfaG9wcyI6NSwidHlwZSI6IlNPUyIsInZlcmlmaWNhdGlvbiI6eyJjb3Jyb2JvcmF0aW9uX2NvdW50IjowLCJzdGF0dXMiOiJ1bnZlcmlmaWVkIn19",
+      "canonical_payload_length": 888,
+      "payload_sha256_hex": "ff3bc5c18e6a985cd82bceec89eab0251cff282bc23085a2172fc32d3736b45c",
+      "frame_lengths": [
+        233,
+        233,
+        233,
+        233,
+        233,
+        59
+      ],
+      "frames_base64": [
+        "UEQBABI+RWfom0LTpFZCZhQXQAD/O8XBjmqYXNgrzuyJ6rAlHP8oK8IwhaIXL8MtNza0XAN4AAZ7ImNyZWF0ZWRfYXQiOiIyMDI2LTA3LTMwVDA5OjE1OjAwWiIsImxhbmd1YWdlIjoiYm4iLCJsb2NhdGlvbiI6eyJhY2N1cmFjeV9tIjo3LjUsImxhdCI6MjMuODEwMywibG5nIjo5MC40MTI1LCJzb3VyY2UiOiJncHMifSwibWVzc2FnZV9pZCI6IjEyM2U0NTY3LWU4OWItNDJkMy1hNDU2LTQyNjYxNDE3NDAwMCI=",
+        "UEQBABI+RWfom0LTpFZCZhQXQAD/O8XBjmqYXNgrzuyJ6rAlHP8oK8IwhaIXL8MtNza0XAN4AQYsInBheWxvYWQiOnsiYXR0YWNobWVudF9yZWYiOm51bGwsIm5lZWRzIjpbInJlc2N1ZSIsIm1lZGljYWwiXSwicGVvcGxlX2NvdW50IjozLCJ0ZXh0Ijoi4Kas4Kao4KeN4Kav4Ka+4KawIOCmquCmvuCmqOCmv+CmpOCnhyDgpqTgpr/gpqjgppzgpqgg4KaG4Kaf4KaV4Ka+IOCmquCmoeCmvOCnh+Cmm+Cnh+ClpCA=",
+        "UEQBABI+RWfom0LTpFZCZhQXQAD/O8XBjmqYXNgrzuyJ6rAlHP8oK8IwhaIXL8MtNza0XAN4Agbgpqbgp43gprDgp4HgpqQg4KaJ4Kam4KeN4Kan4Ka+4KawIOCmkyDgpprgpr/gppXgpr/gp47gprjgpr4g4Ka44Ka54Ka+4Kav4Ka84Kak4Ka+IOCmpuCmsOCmleCmvuCmsOClpCJ9LCJwcmlvcml0eSI6bnVsbCwicmVsYXlfcGF0aCI6W10sInNjaGVtYV92ZXJzaW9uIjoiMS4wLjAiLCJzZW5kZXJfcHVia2V5Ijo=",
+        "UEQBABI+RWfom0LTpFZCZhQXQAD/O8XBjmqYXNgrzuyJ6rAlHP8oK8IwhaIXL8MtNza0XAN4AwYiQTZFSHZfUE9FTDRkY04wWTUwdkFtV2ZrMWpDYnBRMWZIZHlHWkJKVk1iZyIsInNlbmRlcl9wdWJrZXlfaGFzaCI6IlZrZGFwMVJqUjB3Q2hkOWR2eXZLdHoybVVUV0lPZW0zZElHeTZyRUhjSXciLCJzaWduYXR1cmUiOnsiYWxnb3JpdGhtIjoiRWQyNTUxOSIsInZhbHVlIjoiQlV5bFdob19OUFFWSzVWUEFjNzE=",
+        "UEQBABI+RWfom0LTpFZCZhQXQAD/O8XBjmqYXNgrzuyJ6rAlHP8oK8IwhaIXL8MtNza0XAN4BAZTNTg5cUJCeFV4bTBrQWNBUmNfeERtRktLUXJBSlpwem1aSEFyLWlzRi1TRXZIcTVkaWlOWEpLd3FwTmlZOGFDQncifSwic3luY19zdGF0dXMiOiJsb2NhbCIsInR0bF9ob3BzIjo1LCJ0eXBlIjoiU09TIiwidmVyaWZpY2F0aW9uIjp7ImNvcnJvYm9yYXRpb25fY291bnQiOjAsInN0YXR1cyI6InVudmVyaWZpZWQ=",
+        "UEQBABI+RWfom0LTpFZCZhQXQAD/O8XBjmqYXNgrzuyJ6rAlHP8oK8IwhaIXL8MtNza0XAN4BQYifX0="
+      ]
+    },
+    {
+      "name": "english-safe-route-no-location",
+      "report": {
+        "schema_version": "1.0.0",
+        "message_id": "123e4567-e89b-42d3-a456-426614174001",
+        "type": "SAFE_ROUTE",
+        "sender_pubkey": "Kay64UG8yvCyLhqU000LxzYeUm0L_hLIl5S8kyKWbdc",
+        "sender_pubkey_hash": "JPbtasv-EAnAMNfKVnwzykgwkRSYI2tVYabIKr7F3ig",
+        "created_at": "2026-07-30T09:20:00Z",
+        "language": "en",
+        "location": {
+          "lat": null,
+          "lng": null,
+          "accuracy_m": null,
+          "source": "none"
+        },
+        "payload": {
+          "text": "The eastern school road is passable on foot; avoid the damaged bridge.",
+          "people_count": null,
+          "needs": [
+            "signage"
+          ],
+          "attachment_ref": null
+        },
+        "priority": null,
+        "ttl_hops": 5,
+        "signature": {
+          "algorithm": "Ed25519",
+          "value": "SARFNjnI4VYnZG3OP-XsxxeXnvFe8xf2cc02DRTi2H6GZ7KQwberbLkm57Cd63R1xK9ylaKQS0SEEUPUxkS7Cw"
+        },
+        "relay_path": [],
+        "sync_status": "local",
+        "verification": {
+          "status": "unverified",
+          "corroboration_count": 0
+        }
+      },
+      "canonical_payload_base64": "eyJjcmVhdGVkX2F0IjoiMjAyNi0wNy0zMFQwOToyMDowMFoiLCJsYW5ndWFnZSI6ImVuIiwibG9jYXRpb24iOnsiYWNjdXJhY3lfbSI6bnVsbCwibGF0IjpudWxsLCJsbmciOm51bGwsInNvdXJjZSI6Im5vbmUifSwibWVzc2FnZV9pZCI6IjEyM2U0NTY3LWU4OWItNDJkMy1hNDU2LTQyNjYxNDE3NDAwMSIsInBheWxvYWQiOnsiYXR0YWNobWVudF9yZWYiOm51bGwsIm5lZWRzIjpbInNpZ25hZ2UiXSwicGVvcGxlX2NvdW50IjpudWxsLCJ0ZXh0IjoiVGhlIGVhc3Rlcm4gc2Nob29sIHJvYWQgaXMgcGFzc2FibGUgb24gZm9vdDsgYXZvaWQgdGhlIGRhbWFnZWQgYnJpZGdlLiJ9LCJwcmlvcml0eSI6bnVsbCwicmVsYXlfcGF0aCI6W10sInNjaGVtYV92ZXJzaW9uIjoiMS4wLjAiLCJzZW5kZXJfcHVia2V5IjoiS2F5NjRVRzh5dkN5TGhxVTAwMEx4elllVW0wTF9oTElsNVM4a3lLV2JkYyIsInNlbmRlcl9wdWJrZXlfaGFzaCI6IkpQYnRhc3YtRUFuQU1OZktWbnd6eWtnd2tSU1lJMnRWWWFiSUtyN0YzaWciLCJzaWduYXR1cmUiOnsiYWxnb3JpdGhtIjoiRWQyNTUxOSIsInZhbHVlIjoiU0FSRk5qbkk0VlluWkczT1AtWHN4eGVYbnZGZTh4ZjJjYzAyRFJUaTJINkdaN0tRd2JlcmJMa201N0NkNjNSMXhLOXlsYUtRUzBTRUVVUFV4a1M3Q3cifSwic3luY19zdGF0dXMiOiJsb2NhbCIsInR0bF9ob3BzIjo1LCJ0eXBlIjoiU0FGRV9ST1VURSIsInZlcmlmaWNhdGlvbiI6eyJjb3Jyb2JvcmF0aW9uX2NvdW50IjowLCJzdGF0dXMiOiJ1bnZlcmlmaWVkIn19",
+      "canonical_payload_length": 765,
+      "payload_sha256_hex": "b6215fef2804edd6eaada5b2dbcd5d15b6175a15d2a3687f0ff977aa40936940",
+      "frame_lengths": [
+        233,
+        233,
+        233,
+        233,
+        113
+      ],
+      "frames_base64": [
+        "UEQBABI+RWfom0LTpFZCZhQXQAG2IV/vKATt1uqtpbLbzV0VthdaFdKjaH8P+XeqQJNpQAL9AAV7ImNyZWF0ZWRfYXQiOiIyMDI2LTA3LTMwVDA5OjIwOjAwWiIsImxhbmd1YWdlIjoiZW4iLCJsb2NhdGlvbiI6eyJhY2N1cmFjeV9tIjpudWxsLCJsYXQiOm51bGwsImxuZyI6bnVsbCwic291cmNlIjoibm9uZSJ9LCJtZXNzYWdlX2lkIjoiMTIzZTQ1NjctZTg5Yi00MmQzLWE0NTYtNDI2NjE0MTc0MDAxIiwicGE=",
+        "UEQBABI+RWfom0LTpFZCZhQXQAG2IV/vKATt1uqtpbLbzV0VthdaFdKjaH8P+XeqQJNpQAL9AQV5bG9hZCI6eyJhdHRhY2htZW50X3JlZiI6bnVsbCwibmVlZHMiOlsic2lnbmFnZSJdLCJwZW9wbGVfY291bnQiOm51bGwsInRleHQiOiJUaGUgZWFzdGVybiBzY2hvb2wgcm9hZCBpcyBwYXNzYWJsZSBvbiBmb290OyBhdm9pZCB0aGUgZGFtYWdlZCBicmlkZ2UuIn0sInByaW9yaXR5IjpudWxsLCJyZWxheV9wYXQ=",
+        "UEQBABI+RWfom0LTpFZCZhQXQAG2IV/vKATt1uqtpbLbzV0VthdaFdKjaH8P+XeqQJNpQAL9AgVoIjpbXSwic2NoZW1hX3ZlcnNpb24iOiIxLjAuMCIsInNlbmRlcl9wdWJrZXkiOiJLYXk2NFVHOHl2Q3lMaHFVMDAwTHh6WWVVbTBMX2hMSWw1UzhreUtXYmRjIiwic2VuZGVyX3B1YmtleV9oYXNoIjoiSlBidGFzdi1FQW5BTU5mS1Zud3p5a2d3a1JTWUkydFZZYWJJS3I3RjNpZyIsInNpZ25hdHVyZSI6eyJhbGc=",
+        "UEQBABI+RWfom0LTpFZCZhQXQAG2IV/vKATt1uqtpbLbzV0VthdaFdKjaH8P+XeqQJNpQAL9AwVvcml0aG0iOiJFZDI1NTE5IiwidmFsdWUiOiJTQVJGTmpuSTRWWW5aRzNPUC1Yc3h4ZVhudkZlOHhmMmNjMDJEUlRpMkg2R1o3S1F3YmVyYkxrbTU3Q2Q2M1IxeEs5eWxhS1FTMFNFRVVQVXhrUzdDdyJ9LCJzeW5jX3N0YXR1cyI6ImxvY2FsIiwidHRsX2hvcHMiOjUsInR5cGUiOiJTQUZFX1JPVVRFIiwidmVyaWY=",
+        "UEQBABI+RWfom0LTpFZCZhQXQAG2IV/vKATt1uqtpbLbzV0VthdaFdKjaH8P+XeqQJNpQAL9BAVpY2F0aW9uIjp7ImNvcnJvYm9yYXRpb25fY291bnQiOjAsInN0YXR1cyI6InVudmVyaWZpZWQifX0="
+      ]
+    }
+  ]
+}

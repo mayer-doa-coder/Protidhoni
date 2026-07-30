@@ -1,0 +1,30 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "protidhoni-lora-protocol"
+version = "1.0.0"
+description = "Frozen Protidhoni Phase 5 LoRa application framing"
+requires-python = ">=3.12,<3.15"
+dependencies = ["rfc8785>=0.1.4,<0.2.0"]
+
+[project.optional-dependencies]
+dev = [
+  "cryptography>=44.0,<50.0",
+  "jsonschema[format]>=4.23,<5.0",
+  "pytest>=8.3,<9.0",
+  "ruff>=0.9,<1.0",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/protidhoni_lora_protocol"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+

@@ -1,0 +1,22 @@
+{
+  "checked_at": "2026-07-30",
+  "meshtastic_firmware": {
+    "tag": "v2.7.26.54e0d8d",
+    "commit": "54e0d8d0ab2ff56b3a9ce967e53f79e49af560fb",
+    "data_payload_length": 233,
+    "source": "https://github.com/meshtastic/firmware/blob/54e0d8d0ab2ff56b3a9ce967e53f79e49af560fb/src/mesh/generated/meshtastic/mesh.pb.h"
+  },
+  "meshtasticator": {
+    "commit": "17ceb8231079d87b070abc6132181e4c6b20202d",
+    "source": "https://github.com/meshtastic/Meshtasticator/tree/17ceb8231079d87b070abc6132181e4c6b20202d"
+  },
+  "meshtastic_python": {
+    "version": "2.7.11",
+    "source": "https://github.com/meshtastic/python/releases/tag/2.7.11"
+  },
+  "private_application_port": {
+    "value": 256,
+    "source": "https://github.com/meshtastic/protobufs/blob/master/meshtastic/portnums.proto"
+  }
+}
+
