@@ -1,13 +1,17 @@
 openapi: 3.1.0
 info:
   title: Protidhoni API
-  version: 1.2.0-phase2
+  version: 1.3.0-phase4
+  license:
+    name: MIT
+    identifier: MIT
   description: |
     Contract-first API for crisis reports. Public report ingestion is idempotent by
     message_id. The report schema is shared at ./message-schema.json.
 servers:
   - url: http://localhost:8000
     description: Local development
+security: []
 paths:
   /health:
     get:
@@ -20,6 +24,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HealthResponse'
+        '429':
+          $ref: '#/components/responses/RateLimited'
   /reports:
     post:
       operationId: ingestReports
@@ -75,6 +81,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ReportCollection'
+        '400':
+          $ref: '#/components/responses/ValidationError'
   /reports/{message_id}:
     patch:
       operationId: updateReportVerification
@@ -174,6 +182,92 @@ paths:
           $ref: '#/components/responses/InvalidTranslationServiceResponse'
         '503':
           $ref: '#/components/responses/TranslationServiceUnavailable'
+  /gateway/sms:
+    post:
+      operationId: receiveGatewaySms
+      summary: Accept one inbound SMS from the telco provider as a signed report.
+      description: |
+        Provider-facing, never browser-facing. The caller must present a valid
+        X-Twilio-Signature over the request URL and sorted form parameters.
+
+        The sender is a feature phone and cannot sign anything, so the gateway
+        assembles the report and signs it with its own keypair — see the Phase 4
+        addendum in ./README.md for what that signature does and does not attest.
+        Provider-supplied caller metadata is normalized and used only to derive
+        an in-memory rate-limit key; it is never persisted. User-entered Body text
+        is retained. Idempotent by the provider's MessageSid.
+      security:
+        - TwilioSmsSignature: []
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/InboundSmsWebhook'
+      responses:
+        '200':
+          description: Empty TwiML acknowledging an accepted message or provider retry.
+          headers:
+            X-Protidhoni-Message-Id:
+              schema: { type: string, format: uuid }
+            X-Protidhoni-Ingest-Outcome:
+              schema: { enum: [accepted, duplicate] }
+          content:
+            application/xml:
+              schema: { type: string, example: '<Response/>' }
+        '400':
+          description: Required provider fields were missing, or the body was empty.
+        '401':
+          description: Missing or invalid provider webhook signature.
+        '429':
+          description: This sender exceeded its per-minute message allowance.
+        '413':
+          description: The callback body exceeded the bounded gateway request size.
+        '415':
+          description: The callback was not form encoded.
+        '503':
+          description: The gateway is not securely configured on this instance.
+  /gateway/ussd:
+    post:
+      operationId: receiveGatewayUssd
+      summary: Advance one offline simulated USSD menu turn.
+      description: |
+        This is the explicitly offline simulator adapter, not Twilio and not a live
+        telco integration. It uses a separate HMAC-SHA256 credential and header.
+        A live aggregator requires a provider-specific adapter.
+
+        The session is stateless: aggregators accumulate every keypress into the
+        `text` field and resend the whole string each turn, so its segment count is
+        the step counter. Responses use the USSD wire format — a plain-text body
+        prefixed `CON ` to keep the session open or `END ` to close it — rather than
+        JSON, because that is what the aggregator reads back to the handset. A report
+        is stored only on the turn that completes the menu.
+      security:
+        - SimulatorUssdSignature: []
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/InboundUssdWebhook'
+      responses:
+        '200':
+          description: The next menu prompt (`CON …`) or the session result (`END …`).
+          content:
+            text/plain:
+              schema: { type: string, example: 'CON What are you reporting?' }
+        '400':
+          description: Required provider fields were missing.
+        '401':
+          description: Missing or invalid provider webhook signature.
+        '429':
+          description: This sender exceeded its per-minute message allowance.
+        '413':
+          description: The callback body exceeded the bounded gateway request size.
+        '415':
+          description: The callback was not form encoded.
+        '503':
+          description: The gateway is not securely configured on this instance.
   /ai/classify:
     post:
       operationId: classifyReport
@@ -188,11 +282,15 @@ paths:
               $ref: './message-schema.json#/$defs/report'
       responses:
         '200':
-          description: Classification result; Phase 1 defines the persisted enrichment flow.
+          description: Classification result; the calling service decides whether to persist it.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ClassificationResult'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          description: The internal service token is missing or invalid.
   /ai/translate:
     post:
       operationId: translateInternalText
@@ -235,11 +333,40 @@ components:
     HealthResponse:
       type: object
       additionalProperties: false
-      required: [service, status, version]
+      required: [service, status, version, gateway_pubkey_hash]
       properties:
         service: { type: string, example: backend }
         status: { type: string, const: ok }
         version: { type: string, example: 0.1.0 }
+        gateway_pubkey_hash:
+          type: [string, 'null']
+          pattern: '^[A-Za-z0-9_-]{43}$'
+          description: |
+            The SMS/USSD gateway's signing identity, or null when that path is not
+            configured on this deployment. Published so the responder dashboard can
+            label and filter feature-phone reports at runtime. Safe to expose: it is
+            a public-key hash that already appears in every gateway-originated report
+            returned by the public GET /reports.
+    InboundSmsWebhook:
+      type: object
+      required: [MessageSid, From, Body]
+      properties:
+        MessageSid: { type: string, pattern: '^SM[0-9A-Fa-f]{32}$', description: Twilio message id; the idempotency key. }
+        From: { type: string, pattern: '^\+[1-9]\d{7,14}$', description: Provider caller metadata used only to derive an in-memory rate-limit key; never persisted. }
+        To: { type: string, description: The service short code that was messaged. }
+        Body: { type: string, minLength: 1, maxLength: 2000, description: "The sender's own words, in Bangla or English." }
+    InboundUssdWebhook:
+      type: object
+      required: [sessionId, phoneNumber, text]
+      properties:
+        sessionId: { type: string, pattern: '^[A-Za-z0-9._:-]{1,128}$', description: Simulator session id; the idempotency key. }
+        serviceCode: { type: string, example: '*789#' }
+        phoneNumber: { type: string, pattern: '^\+[1-9]\d{7,14}$', description: Simulator caller metadata used only to derive an in-memory rate-limit key; never persisted. }
+        text:
+          type: string
+          description: |
+            All keypresses so far, `*`-delimited and empty on the first turn.
+          example: '1*1*4*4'
     IngestResult:
       type: object
       additionalProperties: false
@@ -351,3 +478,19 @@ components:
       in: header
       name: X-Responder-Token
       description: Responder-only credential of at least 32 characters, configured through PROTIDHONI_RESPONDER_TOKEN.
+    TwilioSmsSignature:
+      type: apiKey
+      in: header
+      name: X-Twilio-Signature
+      description: |
+        Base64 HMAC-SHA1 over the full request URL concatenated with every form
+        parameter in sorted key order, keyed by PROTIDHONI_GATEWAY_WEBHOOK_TOKEN.
+        An unconfigured token disables the SMS adapter with 503.
+    SimulatorUssdSignature:
+      type: apiKey
+      in: header
+      name: X-Protidhoni-Gateway-Signature
+      description: |
+        Versioned Base64 HMAC-SHA256 over the callback URL and exact form body,
+        keyed by the separate PROTIDHONI_GATEWAY_USSD_WEBHOOK_TOKEN. This is only
+        the offline simulator adapter, not a claim of live-provider compatibility.
