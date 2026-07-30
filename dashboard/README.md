@@ -2,7 +2,19 @@
 
 The dashboard polls the real backend `GET /reports` endpoint every 15 seconds and renders conservative incident clusters as Leaflet pins. A cluster joins reports only when their declared type, location (within 750 m), and text/need tokens agree. Each cluster shows report count, independent sender count, and the backend’s reported corroboration count; unrelated emergencies are deliberately left separate rather than being over-grouped.
 
-Filters cover report type, verification state, and priority. Pins remain colour-coded by priority (including a distinct unscored state), and each popup keeps the original Bangla or English text, people count, needs, verification state, and creation time visible. Summary cards keep reports without coordinates visible in the overall counts instead of silently dropping them.
+Filters cover report type, verification state, priority, and arrival channel. Pins remain colour-coded by priority (including a distinct unscored state), and each popup keeps the original Bangla or English text, people count, needs, verification state, and creation time visible. Summary cards keep reports without coordinates visible in the overall counts instead of silently dropping them.
+
+## Channel provenance (Phase 4)
+
+Every report carries a signer-provenance badge: **Gateway-attested**, **Device-signed**, or **Signer unknown**. The dashboard also provides a gateway-attested summary tile and a Channel filter when the backend publishes its current gateway identity.
+
+Detection needs no schema field. A feature phone cannot sign anything, so the Phase 4 gateway signs on its behalf and every report from that path shares one `sender_pubkey_hash` — the gateway's. The backend publishes that hash as `gateway_pubkey_hash` on `GET /health`, which the dashboard already polls, so the dashboard learns it at runtime with no build-time `VITE_` variable and no rebuild when the gateway is reconfigured.
+
+**The badge deliberately says "Gateway-attested", never "via SMS" or "via USSD" and never anything implying a verified sender.** The report schema contains the gateway signer hash but does not encode which upstream adapter received the message. The gateway signature says nothing about who actually sent it, because SMS and USSD carry no cryptographic sender identity. See the Phase 4 addendum in `../contracts/README.md`.
+
+When the backend reports no gateway identity (`null`, or an older backend that omits the field entirely), reports are marked **Signer unknown** and the Channel filter is disabled. The dashboard does not invent device provenance from missing configuration.
+
+This requires the Phase 4 backend from `feature/backend`. Until those branches are merged, the field is absent, which the dashboard handles as unavailable attribution rather than as an error.
 
 ## Responder verification workflow
 

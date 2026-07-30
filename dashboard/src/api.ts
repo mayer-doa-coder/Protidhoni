@@ -1,4 +1,18 @@
-export type ApiHealth = {service: string; status: 'ok'; version: string};
+export type ApiHealth = {
+  service: string;
+  status: 'ok';
+  version: string;
+  /**
+   * The SMS/USSD gateway's signing identity, or null when that path is not
+   * configured on this deployment. Gateway-ingested reports share this signing
+   * identity, which lets the dashboard display signer provenance without
+   * claiming whether the upstream adapter was SMS or USSD.
+   *
+   * Optional in the type because an older backend omits the field entirely;
+   * treat absent and null identically (no gateway to attribute anything to).
+   */
+  gateway_pubkey_hash?: string | null;
+};
 export type ReportType =
   | 'SOS'
   | 'MEDICAL_NEED'
@@ -66,8 +80,17 @@ async function getJson<T>(path: string, signal?: AbortSignal): Promise<T> {
   return response.json() as Promise<T>;
 }
 
-export function getApiHealth(signal?: AbortSignal): Promise<ApiHealth> {
-  return getJson<ApiHealth>('/health', signal);
+export async function getApiHealth(signal?: AbortSignal): Promise<ApiHealth> {
+  const health = await getJson<ApiHealth>('/health', signal);
+  const gatewayHash = health.gateway_pubkey_hash;
+  if (
+    gatewayHash !== undefined &&
+    gatewayHash !== null &&
+    (typeof gatewayHash !== 'string' || !/^[A-Za-z0-9_-]{43}$/.test(gatewayHash))
+  ) {
+    throw new Error('Backend returned an invalid gateway identity.');
+  }
+  return health;
 }
 
 export async function getReports(signal?: AbortSignal): Promise<ReportCollection> {

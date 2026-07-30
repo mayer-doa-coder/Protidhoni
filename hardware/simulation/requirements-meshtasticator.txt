@@ -1,0 +1,12 @@
+# Direct runtime dependencies pinned for the frozen Meshtasticator checkout.
+# setup.ps1 records the platform-specific transitive closure in .runtime/pip-freeze.txt.
+docker==7.1.0
+matplotlib==3.10.0
+meshtastic==2.7.11
+numpy==2.2.6
+pandas==2.2.3
+protobuf==4.25.8
+PyPubSub==4.0.3
+PyYAML==6.0.2
+simpy==4.1.1
+

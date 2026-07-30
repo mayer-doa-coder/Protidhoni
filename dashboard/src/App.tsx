@@ -16,8 +16,15 @@ import {
 import {clusterReports, type IncidentCluster} from './incidentClustering';
 import {
   allowedVerificationUpdates,
+  matchesFilters,
   priorityLabel,
+  reportChannel,
   reportPinColour,
+  ALL_FILTERS,
+  CHANNEL_DESCRIPTIONS,
+  CHANNEL_LABELS,
+  type ReportChannel,
+  type ReportFilters,
 } from './reportPresentation';
 import 'leaflet/dist/leaflet.css';
 import './styles.css';
@@ -48,12 +55,10 @@ const priorities: readonly (Exclude<ReportPriority, null> | 'unscored')[] = [
   'unscored',
 ];
 
+const channels: readonly ReportChannel[] = ['gateway', 'device'];
+
 type MappableCluster = IncidentCluster & {center: {lat: number; lng: number}};
-type Filters = {
-  type: ReportType | 'all';
-  verification: VerificationStatus | 'all';
-  priority: Exclude<ReportPriority, null> | 'unscored' | 'all';
-};
+type Filters = ReportFilters;
 
 function FitClusterBounds({clusters}: {clusters: MappableCluster[]}) {
   const map = useMap();
@@ -119,6 +124,7 @@ function VerificationControls({
 
 function ReportDetails({
   report,
+  gatewayPubkeyHash,
   responderToken,
   submitting,
   translation,
@@ -127,6 +133,7 @@ function ReportDetails({
   onTranslate,
 }: {
   report: CrisisReport;
+  gatewayPubkeyHash: string | null | undefined;
   responderToken: string;
   submitting: boolean;
   translation: ReportTranslation | undefined;
@@ -136,6 +143,7 @@ function ReportDetails({
 }) {
   const targetLanguage = report.language === 'bn' ? 'en' : 'bn';
   const targetLanguageName = targetLanguage === 'bn' ? 'Bangla' : 'English';
+  const channel = reportChannel(report, gatewayPubkeyHash);
 
   return (
     <article className="report-details">
@@ -143,6 +151,9 @@ function ReportDetails({
         <strong>{report.type.replaceAll('_', ' ')}</strong>
         <span className="priority-chip" style={{backgroundColor: reportPinColour(report.priority)}}>
           {priorityLabel(report.priority)}
+        </span>
+        <span className={`channel-chip channel-${channel}`} title={CHANNEL_DESCRIPTIONS[channel]}>
+          {CHANNEL_LABELS[channel]}
         </span>
       </div>
       <p className="original-label">Original ({report.language === 'bn' ? 'Bangla' : 'English'})</p>
@@ -181,6 +192,7 @@ function ReportDetails({
 
 function ClusterPopup({
   cluster,
+  gatewayPubkeyHash,
   responderToken,
   updatingIds,
   translations,
@@ -189,6 +201,7 @@ function ClusterPopup({
   onTranslate,
 }: {
   cluster: IncidentCluster;
+  gatewayPubkeyHash: string | null | undefined;
   responderToken: string;
   updatingIds: ReadonlySet<string>;
   translations: Readonly<Record<string, ReportTranslation>>;
@@ -207,6 +220,7 @@ function ClusterPopup({
         <ReportDetails
           key={report.message_id}
           report={report}
+          gatewayPubkeyHash={gatewayPubkeyHash}
           responderToken={responderToken}
           submitting={updatingIds.has(report.message_id)}
           translation={translations[report.message_id]}
@@ -230,7 +244,7 @@ export default function App() {
   const [updatingIds, setUpdatingIds] = useState<ReadonlySet<string>>(new Set());
   const [translations, setTranslations] = useState<Readonly<Record<string, ReportTranslation>>>({});
   const [translatingIds, setTranslatingIds] = useState<ReadonlySet<string>>(new Set());
-  const [filters, setFilters] = useState<Filters>({type: 'all', verification: 'all', priority: 'all'});
+  const [filters, setFilters] = useState<Filters>(ALL_FILTERS);
 
   const load = useCallback(async (signal?: AbortSignal) => {
     setLoading(true);
@@ -258,13 +272,20 @@ export default function App() {
     };
   }, [load]);
 
+  const gatewayPubkeyHash = health?.gateway_pubkey_hash ?? null;
+
+  useEffect(() => {
+    if (gatewayPubkeyHash) return;
+    setFilters(current => current.channel === 'all' ? current : {...current, channel: 'all'});
+  }, [gatewayPubkeyHash]);
+
   const filteredReports = useMemo(
-    () => reports.filter(report =>
-      (filters.type === 'all' || report.type === filters.type) &&
-      (filters.verification === 'all' || report.verification.status === filters.verification) &&
-      (filters.priority === 'all' || (filters.priority === 'unscored' ? report.priority === null : report.priority === filters.priority)),
-    ),
-    [filters, reports],
+    () => reports.filter(report => matchesFilters(report, filters, gatewayPubkeyHash)),
+    [filters, gatewayPubkeyHash, reports],
+  );
+  const gatewayReportCount = useMemo(
+    () => reports.filter(report => reportChannel(report, gatewayPubkeyHash) === 'gateway').length,
+    [gatewayPubkeyHash, reports],
   );
   const clusters = useMemo(() => clusterReports(filteredReports), [filteredReports]);
   const mappableClusters = useMemo(
@@ -355,6 +376,14 @@ export default function App() {
           <option value="all">All states</option>{verificationStatuses.map(status => <option key={status} value={status}>{status}</option>)}</select></label>
         <label>Priority<select value={filters.priority} onChange={event => setFilters(current => ({...current, priority: event.target.value as Filters['priority']}))}>
           <option value="all">All priorities</option>{priorities.map(priority => <option key={priority} value={priority}>{priority}</option>)}</select></label>
+        <label>Channel<select
+          value={filters.channel}
+          disabled={!gatewayPubkeyHash}
+          title={gatewayPubkeyHash
+            ? 'Filter by the signing identity that attested the report.'
+            : 'Gateway attribution is unavailable because the backend published no gateway identity.'}
+          onChange={event => setFilters(current => ({...current, channel: event.target.value as Filters['channel']}))}>
+          <option value="all">All channels</option>{channels.map(channel => <option key={channel} value={channel}>{CHANNEL_LABELS[channel]}</option>)}</select></label>
       </section>
       {actionError && <p className="action-error" role="alert">{actionError}</p>}
 
@@ -363,6 +392,11 @@ export default function App() {
         <div><strong>{clusters.length}</strong><span>Incident clusters</span></div>
         <div><strong>{mappableClusters.length}</strong><span>Visible pins</span></div>
         <div><strong>{missingLocationCount}</strong><span>Without location</span></div>
+        {gatewayPubkeyHash && (
+          <div title={CHANNEL_DESCRIPTIONS.gateway}>
+            <strong>{gatewayReportCount}</strong><span>Gateway-attested</span>
+          </div>
+        )}
       </section>
 
       <section className="map-frame" aria-label="Map of crisis report clusters">
@@ -378,7 +412,7 @@ export default function App() {
               center={[cluster.center.lat, cluster.center.lng]}
               radius={Math.min(10 + (cluster.reports.length - 1) * 3, 22)}
               pathOptions={{color: '#ffffff', fillColor: reportPinColour(cluster.priority), fillOpacity: 0.95, weight: 2}}>
-              <Popup><ClusterPopup cluster={cluster} responderToken={responderToken} updatingIds={updatingIds} translations={translations} translatingIds={translatingIds} onUpdate={updateVerification} onTranslate={requestTranslation} /></Popup>
+              <Popup><ClusterPopup cluster={cluster} gatewayPubkeyHash={gatewayPubkeyHash} responderToken={responderToken} updatingIds={updatingIds} translations={translations} translatingIds={translatingIds} onUpdate={updateVerification} onTranslate={requestTranslation} /></Popup>
             </CircleMarker>
           ))}
         </MapContainer>

@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "checked_at": "2026-07-30",
+  "python": "3.12",
+  "meshtasticator": {
+    "repository": "https://github.com/meshtastic/Meshtasticator.git",
+    "commit": "17ceb8231079d87b070abc6132181e4c6b20202d"
+  },
+  "meshtastic_daemon": {
+    "image": "meshtastic/meshtasticd:2.7.26@sha256:23e92b1331a3a471eaef0c63cbca4365ca40b3111a9781cfdbe5a5114e5773d4",
+    "release": "2.7.26",
+    "linux_amd64_digest": "sha256:ee4346cd8f3e04292ae447f5d9e49f1f545f380d9b95bad242323e11828053cd"
+  },
+  "meshtastic_python": "2.7.11",
+  "site_planner": {
+    "official_url": "https://site.meshtastic.org/",
+    "repository": "https://github.com/meshtastic/meshtastic-site-planner.git",
+    "source_head_observed": "1f1c6bd4741824a582e500114510ef090bf527a6"
+  },
+  "tcp_nodes": [
+    {"role": "sender", "node_index": 0, "port": 4404},
+    {"role": "relay", "node_index": 1, "port": 4405},
+    {"role": "gateway", "node_index": 2, "port": 4406}
+  ],
+  "private_application_port": 256
+}
+
