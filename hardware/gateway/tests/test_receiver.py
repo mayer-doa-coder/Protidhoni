@@ -72,7 +72,7 @@ def test_receiver_subscribes_before_connect_and_closes_cleanly() -> None:
 
     def factory(host: str, port: int, timeout: int) -> FakeInterface:
         assert pub.subscribed
-        assert (host, port, timeout) == ("node", 4403, 30)
+        assert (host, port, timeout) == ("node", 4406, 30)
         assert pub.listener is not None
         pub.listener({"decoded": {"portnum": "PRIVATE_APP", "payload": b"frame"}})
         stop.set()
@@ -80,7 +80,7 @@ def test_receiver_subscribes_before_connect_and_closes_cleanly() -> None:
 
     receiver = MeshtasticReceiver(
         host="node",
-        port=4403,
+        port=4406,
         connect_timeout_seconds=30,
         dependency_loader=lambda: (pub, factory),
     )
@@ -98,7 +98,7 @@ def test_receiver_wraps_connection_failure_and_unsubscribes() -> None:
 
     receiver = MeshtasticReceiver(
         host="node",
-        port=4403,
+        port=4406,
         connect_timeout_seconds=30,
         dependency_loader=lambda: (pub, factory),
     )
@@ -112,7 +112,7 @@ def test_receiver_surfaces_an_interface_failure_and_closes() -> None:
     interface = FakeInterface(failure=RuntimeError("node stopped"))
     receiver = MeshtasticReceiver(
         host="node",
-        port=4403,
+        port=4406,
         connect_timeout_seconds=30,
         dependency_loader=lambda: (pub, lambda *_args: interface),
     )

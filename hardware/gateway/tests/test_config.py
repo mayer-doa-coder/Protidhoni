@@ -2,7 +2,16 @@ from __future__ import annotations
 
 import pytest
 
-from protidhoni_lora_gateway.config import GatewayConfigurationError, GatewaySettings
+from protidhoni_lora_gateway.config import (
+    DEFAULT_MESHTASTIC_PORT,
+    GatewayConfigurationError,
+    GatewaySettings,
+)
+
+
+def test_default_gateway_port_matches_pinned_meshtasticator_node_two() -> None:
+    assert DEFAULT_MESHTASTIC_PORT == 4406
+    assert GatewaySettings().meshtastic_port == 4406
 
 
 def test_environment_configuration_is_explicit_and_bounded() -> None:

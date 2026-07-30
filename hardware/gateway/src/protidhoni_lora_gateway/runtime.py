@@ -59,7 +59,10 @@ class FrameWorker:
                 finally:
                     self._queue.task_done()
                 self.processor.retry_pending(now=time.monotonic())
-        except Exception as error:
+        # This is the worker thread's final failure boundary. Preserve any
+        # unexpected dependency/programming error for the main thread instead
+        # of letting the daemon thread die silently.
+        except Exception as error:  # noqa: BLE001
             self._failure = error
             self.stop_event.set()
 

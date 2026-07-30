@@ -74,8 +74,8 @@ def _load_meshtastic() -> tuple[PubSubBus, InterfaceFactory]:
         )
 
     try:
-        from pubsub import pub
         from meshtastic.tcp_interface import TCPInterface
+        from pubsub import pub
     except ImportError as error:
         raise ReceiverDependencyError(
             "the installed Meshtastic TCP/pubsub interface cannot be imported"

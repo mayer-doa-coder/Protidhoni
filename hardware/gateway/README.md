@@ -19,10 +19,13 @@ python -m pip install -e ..\protocol -e ".[dev]"
 
 Start the backend and the Meshtasticator scenario first, then run:
 
+At the frozen Meshtasticator commit, node 2 is the uplink gateway and listens on
+TCP port `4406` (`TCP_PORT_OFFSET` 4404 plus node index 2).
+
 ```powershell
 protidhoni-lora-gateway `
   --meshtastic-host 127.0.0.1 `
-  --meshtastic-port 4403 `
+  --meshtastic-port 4406 `
   --backend-url http://127.0.0.1:8000
 ```
 
@@ -30,7 +33,7 @@ Equivalent environment variables are:
 
 ```text
 PROTIDHONI_LORA_MESHTASTIC_HOST=127.0.0.1
-PROTIDHONI_LORA_MESHTASTIC_PORT=4403
+PROTIDHONI_LORA_MESHTASTIC_PORT=4406
 PROTIDHONI_LORA_BACKEND_URL=http://127.0.0.1:8000
 ```
 
