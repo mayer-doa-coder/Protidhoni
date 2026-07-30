@@ -20,7 +20,7 @@ Phase 2 extends the core offline path to every user-creatable report type while 
 ## Remaining deliberate simplifications
 
 - **The mesh does not re-verify signatures before relaying.** Per `contracts/README.md` and Protidhoni_Roadmap.md §5.5, a relay does not need to be trusted — the backend is the enforcement point. Re-checking here would only duplicate that check at Phase 1's expense.
-- **`API_BASE_URL` in `App.tsx` is a hardcoded constant**, not a settings screen. Update it before building for your demo network (see the comment at its definition — emulator vs. real device on the same Wi-Fi need different values).
+- **Backend selection is local and configurable.** A debug build infers the computer running Metro; the Android-emulator fallback is `http://10.0.2.2:8000`. On a physical phone, open **Nearby → Backend connection**, enter the computer's LAN origin (for example `http://192.168.1.20:8000`), and save it. The app validates and persists the origin locally; no team member's LAN address is hard-coded.
 
 ## Run and verify on devices
 

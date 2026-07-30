@@ -16,8 +16,14 @@ supports cleanly for async clients.
 from __future__ import annotations
 
 import pytest
+
 from protidhoni_lora_gateway.backend import BackendClient
-from protidhoni_lora_protocol import MAX_APPLICATION_PAYLOAD, Reassembler, ReassemblyStatus, encode_report
+from protidhoni_lora_protocol import (
+    MAX_APPLICATION_PAYLOAD,
+    Reassembler,
+    ReassemblyStatus,
+    encode_report,
+)
 from protidhoni_lora_protocol.codec import ProtocolError
 
 

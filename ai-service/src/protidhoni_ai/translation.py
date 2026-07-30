@@ -1,9 +1,8 @@
-"""Opt-in Bangla/English translation adapter.
+"""Opt-in Bangla/English provider adapter for the internal translation route.
 
-The frozen AI classification response has no translation field, so this module
-is deliberately not exposed by a new HTTP route. It is ready for the backend
-once the team agrees on a versioned contract extension. Until then it prevents
-the dashboard from pretending that untranslated crisis text is English.
+The public dashboard calls the responder-authorized backend endpoint. The
+backend then calls the AI service's internal-token-protected route, which uses
+this adapter. Provider configuration and errors never cross into the browser.
 """
 
 from __future__ import annotations

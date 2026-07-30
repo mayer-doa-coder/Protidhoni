@@ -79,7 +79,10 @@ async def test_identity_translation_round_trips_through_two_real_apps(
 async def test_unconfigured_translation_provider_fails_closed_across_the_real_boundary(
     ai_service_client_factory,
 ):
-    from protidhoni_api.translation import TranslationUnavailable, request_ai_translation
+    from protidhoni_api.translation import (
+        TranslationUnavailable,
+        request_ai_translation,
+    )
 
     async with ai_service_client_factory(translation_base_url=None) as client:
         with pytest.raises(TranslationUnavailable):
@@ -100,7 +103,10 @@ async def test_wrong_internal_token_is_treated_as_unavailable_not_leaked(
     'ai-service is down' to the responder — see contracts/README.md's
     "Translation failures fail closed" rule.
     """
-    from protidhoni_api.translation import TranslationUnavailable, request_ai_translation
+    from protidhoni_api.translation import (
+        TranslationUnavailable,
+        request_ai_translation,
+    )
 
     async with ai_service_client_factory(translation_base_url="http://unused.test") as client:
         with pytest.raises(TranslationUnavailable):

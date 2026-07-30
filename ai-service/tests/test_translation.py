@@ -4,7 +4,9 @@ from typing import Self
 from unittest.mock import patch
 
 import pytest
+from pydantic import ValidationError
 
+from protidhoni_ai.settings import Settings
 from protidhoni_ai.translation import (
     LibreTranslateProvider,
     TranslationUnavailable,
@@ -61,3 +63,23 @@ def test_translation_identity_does_not_send_report_text_to_a_provider() -> None:
 
     request.assert_not_called()
     assert result.provider == "identity"
+
+
+@pytest.mark.parametrize(
+    "origin",
+    [
+        "file:///tmp/translator",
+        "https://user:password@translator.test",
+        "https://translator.test/api",
+        "https://translator.test?token=secret",
+    ],
+)
+def test_translation_provider_configuration_rejects_non_origin_urls(origin: str) -> None:
+    with pytest.raises(ValidationError, match="TRANSLATION_BASE_URL"):
+        Settings(translation_base_url=origin)
+
+
+def test_translation_provider_configuration_normalizes_a_trailing_slash() -> None:
+    assert Settings(translation_base_url=" https://translator.test/ ").translation_base_url == (
+        "https://translator.test"
+    )

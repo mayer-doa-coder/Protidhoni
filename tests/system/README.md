@@ -16,6 +16,7 @@ Meshtasticator radio simulation — never a second project's own code.
 
 | File | Proves |
 |---|---|
+| `test_contract_consistency.py` | The frozen OpenAPI operation set equals the combined backend/AI runtime operation set, every privileged frozen operation names the correct security scheme, and backend/AI report-type enums equal the frozen message schema. |
 | `test_mesh_report_flow.py` | A signed report round-trips through the real `POST /reports` → `GET /reports` path: real Pydantic validation, real Ed25519 verification, real idempotency, real rejection of tampered/misattributed reports, and that the stored shape carries every field `dashboard/src/api.ts`'s `CrisisReport` type requires. |
 | `test_lora_transport_chain.py` | The full Phase 5 chain in one test: sign → `hardware/protocol`'s `encode_report` → `Reassembler` → `hardware/gateway`'s `BackendClient` → the real backend's ingestion and signature verification. Also proves a corrupted fragment is rejected before ever reaching the backend. |
 | `test_gateway_sms_ussd.py` | Real HTTP requests against `/gateway/sms` and `/gateway/ussd`, signed with the real webhook-signature functions each adapter verifies against: acceptance, idempotency by provider id, independent adapter authentication, and that the caller's phone number never reaches storage. |
@@ -28,7 +29,7 @@ Meshtasticator radio simulation — never a second project's own code.
 cd tests/system
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
-python -m pip install -e ..\..\backend -e ..\..\ai-service -e ..\..\hardware\protocol -e ..\..\hardware\gateway pytest pytest-asyncio httpx uvicorn ruff
+python -m pip install -e ..\..\backend -e ..\..\ai-service -e ..\..\hardware\protocol -e ..\..\hardware\gateway pytest pytest-asyncio httpx uvicorn pyyaml ruff
 ```
 
 The four `-e` installs are genuinely necessary, not incidental — this suite exists specifically to run backend, ai-service, hardware/protocol, and hardware/gateway's real code together in one process. Their dependency ranges (`fastapi>=0.115,<1.0`, `pydantic-settings>=2.7,<3.0`, etc.) were checked for compatibility before this was built; no version pin needed loosening.

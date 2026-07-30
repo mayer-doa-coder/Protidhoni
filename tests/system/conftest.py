@@ -27,6 +27,7 @@ import pytest
 import rfc8785
 import uvicorn
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+
 from protidhoni_api import db as db_module
 from protidhoni_api.main import create_app
 from protidhoni_api.routes import get_db_pool

@@ -1,0 +1,12 @@
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint.isort]
+known-first-party = [
+  "conftest",
+  "protidhoni_ai",
+  "protidhoni_api",
+  "protidhoni_lora_gateway",
+  "protidhoni_lora_protocol",
+]

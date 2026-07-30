@@ -14,14 +14,14 @@ import secrets
 from urllib.parse import urlencode
 
 import pytest
+
+from conftest import SMS_WEBHOOK_TOKEN, USSD_WEBHOOK_TOKEN
 from protidhoni_api.gateway_webhook import (
     SIMULATOR_SIGNATURE_HEADER,
     TWILIO_SIGNATURE_HEADER,
     expected_simulator_signature,
     expected_twilio_signature,
 )
-
-from conftest import SMS_WEBHOOK_TOKEN, USSD_WEBHOOK_TOKEN
 
 SMS_URL = "http://backend.test/gateway/sms"
 USSD_URL = "http://backend.test/gateway/ussd"

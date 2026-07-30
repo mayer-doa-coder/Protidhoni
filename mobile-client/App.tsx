@@ -4,9 +4,11 @@ import {
   PermissionsAndroid,
   Platform,
   Pressable,
+  ScrollView,
   type Permission,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
@@ -17,17 +19,11 @@ import { MyReportsScreen } from './src/screens/MyReportsScreen';
 import { ReportFormScreen } from './src/screens/ReportFormScreen';
 import { NearbyConnections } from './src/native/NearbyConnections';
 import { startAutoSync } from './src/sync/sync';
-
-/**
- * Where this device POSTs its queue when it regains connectivity
- * (src/sync/sync.ts). There is no settings UI yet — set it
- * for your demo network before building:
- *   - Android emulator: the default below (10.0.2.2 is the emulator's alias
- *     for the host machine's localhost).
- *   - A real phone on the same Wi-Fi as the machine running
- *     `docker compose up`: that machine's LAN IP, e.g. 'http://192.168.1.42:8000'.
- */
-const API_BASE_URL = 'http://192.168.0.117:8000';
+import {
+  defaultBackendOrigin,
+  loadBackendOrigin,
+  saveBackendOrigin,
+} from './src/config/backend';
 
 const endpointName = `Protidhoni-${Math.random().toString(36).slice(2, 8)}`;
 
@@ -84,8 +80,16 @@ function TabButton({
   );
 }
 
-function MeshScreen() {
+function MeshScreen({
+  apiBaseUrl,
+  onApiBaseUrlChange,
+}: {
+  apiBaseUrl: string;
+  onApiBaseUrlChange: (value: string) => void;
+}) {
   const [active, setActive] = useState(false);
+  const [backendDraft, setBackendDraft] = useState(apiBaseUrl);
+  const [backendFeedback, setBackendFeedback] = useState('');
   const [endpoints, setEndpoints] = useState<Record<string, string>>({});
   const [pendingRequests, setPendingRequests] = useState<
     Record<string, { name: string; authenticationDigits: string }>
@@ -95,6 +99,20 @@ function MeshScreen() {
     () => Object.entries(pendingRequests),
     [pendingRequests],
   );
+
+  useEffect(() => setBackendDraft(apiBaseUrl), [apiBaseUrl]);
+
+  const saveBackend = async () => {
+    try {
+      const saved = await saveBackendOrigin(backendDraft);
+      onApiBaseUrlChange(saved);
+      setBackendFeedback('Saved. Queue sync now uses this backend.');
+    } catch (error) {
+      setBackendFeedback(
+        error instanceof Error ? error.message : 'Could not save the backend URL.',
+      );
+    }
+  };
 
   const respond = async (endpointId: string, accept: boolean) => {
     setPendingRequests(current => {
@@ -163,7 +181,7 @@ function MeshScreen() {
   };
 
   return (
-    <View style={styles.meshPage}>
+    <ScrollView contentContainerStyle={styles.meshPage} keyboardShouldPersistTaps="handled">
       <View style={styles.card}>
         <Text style={styles.title}>Protidhoni</Text>
         <Text style={styles.subtitle}>Offline peer mesh</Text>
@@ -172,6 +190,32 @@ function MeshScreen() {
           each one found. Every incoming connection request waits below for you
           to accept or decline before any payload is exchanged.
         </Text>
+        <Text style={styles.heading}>Backend connection</Text>
+        <Text style={styles.detail}>
+          Emulator: http://10.0.2.2:8000. On a real phone, use this computer&apos;s
+          LAN IP.
+        </Text>
+        <TextInput
+          accessibilityLabel="Backend URL"
+          autoCapitalize="none"
+          autoCorrect={false}
+          keyboardType="url"
+          onChangeText={setBackendDraft}
+          placeholder="http://192.168.1.20:8000"
+          style={styles.backendInput}
+          testID="backend-url"
+          value={backendDraft}
+        />
+        <Pressable
+          onPress={saveBackend}
+          style={styles.secondaryButton}
+          testID="save-backend-url"
+        >
+          <Text style={styles.buttonText}>Save backend URL</Text>
+        </Pressable>
+        {backendFeedback ? (
+          <Text style={styles.status}>{backendFeedback}</Text>
+        ) : null}
         <Pressable
           accessibilityRole="button"
           onPress={() => {
@@ -237,16 +281,16 @@ function MeshScreen() {
           </Text>
         ))}
       </View>
-    </View>
+    </ScrollView>
   );
 }
 
 function App() {
   const [tab, setTab] = useState<Tab>('create');
+  const [apiBaseUrl, setApiBaseUrl] = useState(defaultBackendOrigin);
 
   useEffect(() => {
     let stopRelay: (() => void) | undefined;
-    let stopSync: (() => void) | undefined;
     let cancelled = false;
 
     // eslint-disable-next-line no-void -- effect callbacks can't be async
@@ -254,15 +298,39 @@ function App() {
       const db = await getAppDatabase();
       if (cancelled) return;
       stopRelay = startMeshRelay(db);
-      stopSync = startAutoSync(db, { apiBaseUrl: API_BASE_URL });
     })();
 
     return () => {
       cancelled = true;
       stopRelay?.();
-      stopSync?.();
     };
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    // eslint-disable-next-line no-void -- effect callbacks cannot be async
+    void loadBackendOrigin(apiBaseUrl).then(stored => {
+      if (!cancelled && stored !== apiBaseUrl) setApiBaseUrl(stored);
+    });
+    return () => {
+      cancelled = true;
+    };
+    // Load the persisted override once; later changes already update state.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    let stopSync: (() => void) | undefined;
+    let cancelled = false;
+    // eslint-disable-next-line no-void -- effect callbacks cannot be async
+    void getAppDatabase().then(db => {
+      if (!cancelled) stopSync = startAutoSync(db, { apiBaseUrl });
+    });
+    return () => {
+      cancelled = true;
+      stopSync?.();
+    };
+  }, [apiBaseUrl]);
 
   return (
     <SafeAreaProvider>
@@ -287,7 +355,9 @@ function App() {
         </View>
         {tab === 'create' && <ReportFormScreen />}
         {tab === 'reports' && <MyReportsScreen />}
-        {tab === 'mesh' && <MeshScreen />}
+        {tab === 'mesh' && (
+          <MeshScreen apiBaseUrl={apiBaseUrl} onApiBaseUrlChange={setApiBaseUrl} />
+        )}
       </SafeAreaView>
     </SafeAreaProvider>
   );
@@ -306,7 +376,7 @@ const styles = StyleSheet.create({
   tabButtonActive: { backgroundColor: '#c2410c' },
   tabLabel: { color: '#93a5b8', fontWeight: '600' },
   tabLabelActive: { color: '#ffffff', fontWeight: '700' },
-  meshPage: { flex: 1, justifyContent: 'center', padding: 24 },
+  meshPage: { flexGrow: 1, justifyContent: 'center', padding: 24 },
   card: { backgroundColor: '#ffffff', borderRadius: 16, padding: 24, gap: 14 },
   title: { fontSize: 32, fontWeight: '700', color: '#071a2c' },
   subtitle: { fontSize: 17, fontWeight: '600', color: '#c2410c' },
@@ -318,6 +388,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   buttonText: { color: '#ffffff', fontSize: 16, fontWeight: '700' },
+  secondaryButton: {
+    backgroundColor: '#334155',
+    borderRadius: 10,
+    padding: 12,
+    alignItems: 'center',
+  },
+  backendInput: {
+    borderColor: '#94a3b8',
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    color: '#071a2c',
+  },
   status: { color: '#374151' },
   heading: { fontSize: 16, fontWeight: '700', marginTop: 8 },
   endpoint: { color: '#0f766e' },
