@@ -88,6 +88,22 @@ python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().d
 
 The parallel PostGIS `reports.location` geography column stays plaintext so `GET /reports?bbox=` can keep using PostGIS, but for `SOS` and `MEDICAL_NEED` reports it stores only coordinates rounded to two decimal places. The exact vulnerable-person coordinates remain available only in encrypted JSONB and are decrypted on authorized reads.
 
+### Existing databases created before encryption
+
+Phase 1 volumes may contain plaintext `SOS`/`MEDICAL_NEED` rows. Migrate them before starting the updated backend. The command is fail-closed and transactional: it leaves valid current ciphertext untouched, refuses mixed/corrupt rows or ciphertext from another key, and prints counts rather than report content.
+
+Back up the database and preserve the original `DATA_ENCRYPTION_KEY`. Then build the current backend image, stop only the API process, run the dry check, and apply it:
+
+```powershell
+docker compose build backend
+docker compose stop backend
+docker compose run --rm --no-deps backend python -m protidhoni_api.migrate_legacy_encryption
+docker compose run --rm --no-deps backend python -m protidhoni_api.migrate_legacy_encryption --apply
+docker compose up -d backend
+```
+
+Run the dry check again after applying; it should report zero legacy plaintext rows. Never generate a replacement encryption key for an existing volume: ciphertext written with a lost key cannot be recovered.
+
 ## Run locally
 
 ```powershell

@@ -71,7 +71,7 @@ def _post(
         method="POST",
     )
     try:
-        with urlopen(request, timeout=15) as response:  # noqa: S310 - explicit demo URL
+        with urlopen(request, timeout=15) as response:
             headers = {key.lower(): value for key, value in response.headers.items()}
             return response.status, response.read().decode("utf-8"), headers
     except HTTPError as error:

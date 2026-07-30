@@ -46,6 +46,11 @@ def _fernet() -> Fernet:
         ) from error
 
 
+def validate_encryption_key() -> None:
+    """Fail before a migration or ingest if the configured key is unusable."""
+    _fernet()
+
+
 def encrypt_sensitive_text(plaintext: str) -> str:
     return _fernet().encrypt(plaintext.encode("utf-8")).decode("ascii")
 

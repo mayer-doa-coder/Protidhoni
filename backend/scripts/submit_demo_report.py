@@ -11,7 +11,7 @@ import base64
 import hashlib
 import json
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from urllib.request import Request, urlopen
 
 import rfc8785
@@ -50,7 +50,7 @@ def build_demo_report() -> dict:
         "type": "SOS",
         "sender_pubkey": _b64url(public_key),
         "sender_pubkey_hash": _b64url(hashlib.sha256(public_key).digest()),
-        "created_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        "created_at": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
         "language": "en",
         "location": {"lat": 23.81, "lng": 90.41, "accuracy_m": 5.0, "source": "gps"},
         "payload": {
@@ -86,7 +86,7 @@ def main() -> None:
         headers={"Content-Type": "application/json"},
         method="POST",
     )
-    with urlopen(request, timeout=10) as response:  # noqa: S310 - explicit local/demo URL
+    with urlopen(request, timeout=10) as response:
         result = json.loads(response.read())
     if result["results"] != [{"message_id": report["message_id"], "outcome": "accepted"}]:
         raise RuntimeError(f"Demo report was not accepted: {result}")

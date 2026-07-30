@@ -30,3 +30,8 @@ pythonpath = ["src"]
 [tool.ruff]
 line-length = 100
 target-version = "py312"
+
+[tool.ruff.lint.flake8-bugbear]
+# FastAPI resolves dependencies from calls in parameter defaults; this is the
+# framework's intended declaration syntax, not mutable import-time state.
+extend-immutable-calls = ["fastapi.Depends"]
