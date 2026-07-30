@@ -41,11 +41,11 @@ def test_golden_vectors_match_codec_contract_schema_and_real_signatures() -> Non
     assert document["protocol"] == {
         "version": 1,
         "application_port": 256,
-        "meshtastic_payload_bytes": 233,
+        "meshtastic_payload_bytes": 224,
         "header_bytes": 56,
-        "chunk_bytes": 177,
+        "chunk_bytes": 168,
         "max_report_bytes": 16_384,
-        "max_fragments": 93,
+        "max_fragments": 98,
     }
     assert len(document["vectors"]) >= 2
 

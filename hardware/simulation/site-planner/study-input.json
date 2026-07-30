@@ -28,7 +28,14 @@
   },
   "simulation": {
     "modem_preset_label": "LongFast",
-    "environment": "urban",
+    "radio_climate": "maritime_subtropical",
+    "polarization": "vertical",
+    "clutter_height_m": 1.0,
+    "ground_dielectric": 15.0,
+    "ground_conductivity_s_per_m": 0.005,
+    "atmosphere_bending_n_units": 301.0,
+    "situation_fraction_percent": 95.0,
+    "time_fraction_percent": 95.0,
     "maximum_range_km": 5.0,
     "terrain_resolution_m": 90,
     "requested_outputs": [
@@ -40,7 +47,8 @@
   "limitations": [
     "All inputs and outputs are predictions, not field measurements.",
     "The coordinates are synthetic test data and are not a proposed deployment.",
-    "The model includes terrain but not buildings, trees, weather, interference, installation loss, or hardware variation.",
+    "The selected ITM radio climate is maritime subtropical; it is not an urban-building model.",
+    "The model includes terrain but not explicit buildings, trees, weather, interference, installation loss, or hardware variation.",
     "The radio frequency and power are modelling inputs only; legal use in Bangladesh requires a current local regulatory determination.",
     "The observed source repository head does not prove the hosted planner was deployed from that exact commit."
   ]

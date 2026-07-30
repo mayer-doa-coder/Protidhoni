@@ -30,13 +30,11 @@ EXPECTED_MESHTASTICD_IMAGE = (
     "sha256:23e92b1331a3a471eaef0c63cbca4365ca40b3111a9781cfdbe5a5114e5773d4"
 )
 EXPECTED_MESHTASTIC_PYTHON = "2.7.11"
-EXPECTED_PORTS = (4404, 4405, 4406)
+EXPECTED_PORTS = (4404, 4405, 4406, 4407)
+EXPECTED_MODEM_PRESET = "SHORT_FAST"
 
 # Pinned Meshtasticator commit defaults (lib/config.py), used only to prove
 # whether the synthetic topology has the intended graph before it is launched.
-MODEL_FREQUENCY_HZ = 908_750_000.0
-MODEL_TX_POWER_DBM = 30.0
-MODEL_SENSITIVITY_DBM = -131.5
 MODEL_HEIGHT_M = 1.0
 
 FORBIDDEN_EVIDENCE_KEYS = {
@@ -133,23 +131,35 @@ def _sha256(path: Path) -> str:
 
 
 def _path_loss_3gpp_suburban(
-    distance_m: float, tx_height_m: float, rx_height_m: float
+    distance_m: float, tx_height_m: float, rx_height_m: float, frequency_hz: float
 ) -> float:
     distance_m = max(distance_m, 0.001)
     return (
         (44.9 - 6.55 * math.log10(tx_height_m)) * (math.log10(distance_m) - 3.0)
         + 45.5
-        + (35.46 - 1.1 * rx_height_m) * (math.log10(MODEL_FREQUENCY_HZ) - 6.0)
+        + (35.46 - 1.1 * rx_height_m) * (math.log10(frequency_hz) - 6.0)
         - 13.82 * math.log10(rx_height_m)
         + 0.7 * rx_height_m
     )
 
 
-def _link_margin(left: dict[str, Any], right: dict[str, Any]) -> float:
+def _link_margin(
+    left: dict[str, Any], right: dict[str, Any], radio_model: dict[str, Any]
+) -> float:
     distance = math.hypot(left["x_m"] - right["x_m"], left["y_m"] - right["y_m"])
-    loss = _path_loss_3gpp_suburban(distance, left["height_m"], right["height_m"])
+    loss = _path_loss_3gpp_suburban(
+        distance,
+        left["height_m"],
+        right["height_m"],
+        radio_model["frequency_hz"],
+    )
     gains = left["antenna_gain_dbi"] + right["antenna_gain_dbi"]
-    return MODEL_TX_POWER_DBM + gains - loss - MODEL_SENSITIVITY_DBM
+    return (
+        radio_model["tx_power_dbm"]
+        + gains
+        - loss
+        - radio_model["sensitivity_dbm"]
+    )
 
 
 def validate_versions() -> dict[str, Any]:
@@ -169,6 +179,15 @@ def validate_versions() -> dict[str, Any]:
         raise ValidationError(
             "Meshtastic Python version differs from the frozen protocol"
         )
+    radio_model = versions.get("radio_model")
+    if radio_model != {
+        "modem_preset": EXPECTED_MODEM_PRESET,
+        "frequency_hz": 908_750_000.0,
+        "tx_power_dbm": 30.0,
+        "sensitivity_dbm": -121.5,
+        "simulation_only": True,
+    }:
+        raise ValidationError("simulation radio model differs from reviewed SHORT_FAST settings")
     ports = tuple(item.get("port") for item in versions.get("tcp_nodes", []))
     if ports != EXPECTED_PORTS:
         raise ValidationError(f"simulator node ports must be {EXPECTED_PORTS}")
@@ -219,16 +238,19 @@ def validate_topology(path: Path) -> dict[str, Any]:
     if topology["schema_version"] != 1 or not isinstance(topology["description"], str):
         raise ValidationError(f"{path} has invalid metadata")
     nodes = topology["nodes"]
-    if not isinstance(nodes, list) or len(nodes) != 3:
-        raise ValidationError(f"{path} must contain exactly three nodes")
+    if not isinstance(nodes, list) or len(nodes) not in {3, 4}:
+        raise ValidationError(f"{path} must contain three or four nodes")
+    expected_indexes = tuple(range(len(nodes)))
     by_index: dict[int, dict[str, Any]] = {}
     for node in nodes:
         if not isinstance(node, dict):
             raise ValidationError(f"{path} contains a non-object node")
         _expect_keys(node, NODE_KEYS, f"{path.name} node")
         index = node["index"]
-        if type(index) is not int or index not in (0, 1, 2) or index in by_index:
-            raise ValidationError(f"{path} node indexes must be unique 0, 1, 2")
+        if type(index) is not int or index not in expected_indexes or index in by_index:
+            raise ValidationError(
+                f"{path} node indexes must be unique {', '.join(map(str, expected_indexes))}"
+            )
         if node["role"] not in {"sender", "relay", "gateway"}:
             raise ValidationError(f"{path} contains an invalid node role")
         for key in ("x_m", "y_m", "height_m", "antenna_gain_dbi"):
@@ -240,12 +262,11 @@ def validate_topology(path: Path) -> dict[str, Any]:
             if type(node[key]) is not bool:
                 raise ValidationError(f"{path} node {index} has invalid {key}")
         by_index[index] = node
-    if [by_index[index]["role"] for index in range(3)] != [
-        "sender",
-        "relay",
-        "gateway",
-    ]:
-        raise ValidationError(f"{path} roles must map sender=0, relay=1, gateway=2")
+    expected_roles = ["sender"] + ["relay"] * (len(nodes) - 2) + ["gateway"]
+    if [by_index[index]["role"] for index in expected_indexes] != expected_roles:
+        raise ValidationError(
+            f"{path} roles must be sender, one or two relays, then gateway"
+        )
 
     def pairs(name: str) -> set[tuple[int, int]]:
         raw_pairs = topology[name]
@@ -267,10 +288,12 @@ def validate_topology(path: Path) -> dict[str, Any]:
     absent = pairs("required_absent_links")
     if expected & absent:
         raise ValidationError(f"{path} declares a link both present and absent")
+    radio_model = validate_versions()["radio_model"]
     margins = {
-        (left, right): _link_margin(by_index[left], by_index[right])
-        for left in range(3)
-        for right in range(left + 1, 3)
+        (left, right): _link_margin(by_index[left], by_index[right], radio_model)
+        for left in expected_indexes
+        for right in expected_indexes
+        if left < right
     }
     for pair in expected:
         if margins[pair] < 0:
@@ -674,14 +697,10 @@ def _geojson_positions(value: Any) -> list[tuple[float, float]]:
     return positions
 
 
-def capture_site_study(args: argparse.Namespace) -> Path:
-    study_path = SIMULATION_ROOT / "site-planner" / "study-input.json"
-    study = load_json(study_path)
-    coverage_source = Path(args.coverage).resolve()
-    p2p_source = Path(args.point_to_point).resolve()
-    if coverage_source.suffix.casefold() not in {".geojson", ".json"}:
-        raise ValidationError("coverage export must be GeoJSON")
-    coverage = load_json(coverage_source)
+def _validate_site_artifacts(
+    coverage_path: Path, p2p_path: Path, study: dict[str, Any]
+) -> None:
+    coverage = load_json(coverage_path)
     if not isinstance(coverage, dict) or coverage.get("type") not in {
         "Feature",
         "FeatureCollection",
@@ -701,12 +720,141 @@ def capture_site_study(args: argparse.Namespace) -> Path:
             raise ValidationError(
                 "coverage coordinates differ from the reviewed synthetic study area"
             )
-    if p2p_source.suffix.casefold() != ".png" or not p2p_source.read_bytes().startswith(
-        b"\x89PNG\r\n\x1a\n"
+
+    try:
+        png_header = p2p_path.read_bytes()[:24]
+    except OSError as error:
+        raise ValidationError(f"cannot read {p2p_path}: {error}") from error
+    if (
+        len(png_header) < 24
+        or not png_header.startswith(b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR")
+        or int.from_bytes(png_header[16:20], "big") <= 0
+        or int.from_bytes(png_header[20:24], "big") <= 0
     ):
         raise ValidationError(
-            "point-to-point evidence must be an unedited PNG screenshot"
+            "point-to-point evidence must be a PNG screenshot with a valid IHDR"
         )
+
+
+def _validate_summary(value: Any, where: str) -> None:
+    if (
+        not isinstance(value, str)
+        or not value.strip()
+        or len(value) > 500
+        or "=" in value
+    ):
+        raise ValidationError(
+            f"{where} must be 1..500 characters without key=value data"
+        )
+
+
+def validate_site_evidence(path: Path) -> dict[str, Any]:
+    path = path.resolve()
+    allowed_root = (EVIDENCE_ROOT / "generated" / "site-planner").resolve()
+    try:
+        path.relative_to(allowed_root)
+    except ValueError as error:
+        raise ValidationError(
+            f"Site Planner manifest must be inside {allowed_root}"
+        ) from error
+    if path.name != "manifest.json":
+        raise ValidationError("Site Planner evidence must be named manifest.json")
+
+    manifest = load_json(path)
+    if not isinstance(manifest, dict):
+        raise ValidationError(f"{path} must contain a Site Planner manifest object")
+    _scan_forbidden_keys(manifest)
+    _expect_keys(
+        manifest,
+        {
+            "schema_version",
+            "recorder",
+            "study_id",
+            "run_at",
+            "captured_at",
+            "planner_url",
+            "browser",
+            "input_sha256",
+            "coordinate_classification",
+            "regulatory_status",
+            "observations",
+            "artifacts",
+            "limitations",
+        },
+        str(path),
+    )
+    if manifest["schema_version"] != 1 or manifest["recorder"] != "phase5_tools.py":
+        raise ValidationError(f"{path} is not tool-generated Site Planner evidence")
+
+    study_path = SIMULATION_ROOT / "site-planner" / "study-input.json"
+    study = load_json(study_path)
+    expected_values = {
+        "study_id": study["study_id"],
+        "planner_url": study["planner"]["official_url"],
+        "input_sha256": _sha256(study_path),
+        "coordinate_classification": study["coordinate_classification"],
+        "regulatory_status": study["regulatory_status"],
+        "limitations": study["limitations"],
+    }
+    for key, expected in expected_values.items():
+        if manifest[key] != expected:
+            raise ValidationError(f"{path} {key} differs from the reviewed study")
+
+    run_at = _parse_utc(manifest["run_at"], "run_at")
+    captured_at = _parse_utc(manifest["captured_at"], "captured_at")
+    if not run_at <= captured_at <= datetime.now(timezone.utc):
+        raise ValidationError(f"{path} timestamps are out of order or in the future")
+    _validate_summary(manifest["browser"], "browser")
+
+    observations = manifest["observations"]
+    if not isinstance(observations, dict):
+        raise ValidationError(f"{path} observations must be an object")
+    _expect_keys(
+        observations,
+        {"coverage_summary", "point_to_point_summary"},
+        f"{path} observations",
+    )
+    for key, value in observations.items():
+        _validate_summary(value, key)
+
+    artifacts = manifest["artifacts"]
+    if not isinstance(artifacts, list) or len(artifacts) != 2:
+        raise ValidationError(f"{path} must list exactly two Site Planner artifacts")
+    expected_names = {"coverage.geojson", "point-to-point.png"}
+    found_names: set[str] = set()
+    for artifact in artifacts:
+        if not isinstance(artifact, dict):
+            raise ValidationError(f"{path} contains a non-object artifact")
+        _expect_keys(artifact, {"path", "sha256"}, f"{path} artifact")
+        name = artifact["path"]
+        if name not in expected_names or name in found_names:
+            raise ValidationError(f"{path} has missing, duplicate, or unknown artifacts")
+        if not isinstance(artifact["sha256"], str) or not SHA256_RE.fullmatch(
+            artifact["sha256"]
+        ):
+            raise ValidationError(f"{path} contains an invalid artifact digest")
+        local_path = path.parent / name
+        if not local_path.is_file() or _sha256(local_path) != artifact["sha256"]:
+            raise ValidationError(f"{path} artifact is missing or changed: {name}")
+        found_names.add(name)
+    if found_names != expected_names:
+        raise ValidationError(f"{path} does not contain the required artifacts")
+    _validate_site_artifacts(
+        path.parent / "coverage.geojson", path.parent / "point-to-point.png", study
+    )
+    return manifest
+
+
+def capture_site_study(args: argparse.Namespace) -> Path:
+    study_path = SIMULATION_ROOT / "site-planner" / "study-input.json"
+    study = load_json(study_path)
+    coverage_source = Path(args.coverage).resolve()
+    p2p_source = Path(args.point_to_point).resolve()
+    if coverage_source.suffix.casefold() not in {".geojson", ".json"}:
+        raise ValidationError("coverage export must be GeoJSON")
+    if p2p_source.suffix.casefold() != ".png":
+        raise ValidationError("point-to-point evidence must use a .png extension")
+    _validate_site_artifacts(coverage_source, p2p_source, study)
 
     run_at = _parse_utc(args.run_at, "run_at")
     if run_at > datetime.now(timezone.utc):
@@ -716,15 +864,7 @@ def capture_site_study(args: argparse.Namespace) -> Path:
         "coverage_summary": args.coverage_summary,
         "point_to_point_summary": args.point_to_point_summary,
     }.items():
-        if (
-            not isinstance(value, str)
-            or not value.strip()
-            or len(value) > 500
-            or "=" in value
-        ):
-            raise ValidationError(
-                f"{name} must be 1..500 characters without key=value data"
-            )
+        _validate_summary(value, name)
 
     output_dir = Path(args.output_dir).resolve()
     allowed_root = (EVIDENCE_ROOT / "generated" / "site-planner").resolve()
@@ -773,6 +913,7 @@ def capture_site_study(args: argparse.Namespace) -> Path:
             encoding="utf-8",
             newline="\n",
         )
+        validate_site_evidence(manifest_path)
         return manifest_path
     except Exception:
         shutil.rmtree(output_dir, ignore_errors=True)
@@ -831,6 +972,9 @@ def _parser() -> argparse.ArgumentParser:
     site.add_argument("--coverage-summary", required=True)
     site.add_argument("--point-to-point-summary", required=True)
     site.add_argument("--output-dir", required=True)
+
+    validate_site = subparsers.add_parser("validate-site-evidence")
+    validate_site.add_argument("paths", nargs="+", type=Path)
     return parser
 
 
@@ -857,6 +1001,10 @@ def main(argv: list[str] | None = None) -> int:
             print(f"Recorded evidence: {record_evidence(args)}")
         elif args.command == "capture-site-study":
             print(f"Captured Site Planner evidence: {capture_site_study(args)}")
+        elif args.command == "validate-site-evidence":
+            for path in args.paths:
+                validate_site_evidence(path)
+                print(f"Valid Site Planner evidence: {path}")
         else:  # pragma: no cover - argparse prevents this
             raise ValidationError(f"unknown command: {args.command}")
     except (ValidationError, KeyError, TypeError, ValueError) as error:

@@ -18,7 +18,10 @@ signature, idempotency, and rate-limit checks still apply.
 - Meshtastic application port: `PRIVATE_APP` (`256`). The official protobuf
   definition reserves values `256`–`511` for private applications.
 - The pinned firmware's generated `meshtastic_Constants_DATA_PAYLOAD_LEN` is
-  **233 bytes**. Every version-1 frame is therefore at most 233 bytes.
+  233 bytes. The pinned daemon accepts at most 231 `PRIVATE_APP` bytes for port
+  256, while the pinned Meshtasticator relay path accepts 225 but not 231. The
+  version-1 ceiling is therefore **224 application bytes**, leaving one byte
+  below the stricter observed simulation boundary.
 
 The evidence run must print and record its actual firmware, simulator, and Python
 client versions. A different version is not automatically incompatible, but it
@@ -61,13 +64,13 @@ All integers use network byte order (big-endian). Offsets are zero-based.
 | 20 | 32 | payload digest | SHA-256 of the complete canonical payload |
 | 52 | 2 | total payload length | unsigned 16-bit integer, `1..16384` |
 | 54 | 1 | fragment index | unsigned, zero-based |
-| 55 | 1 | fragment count | unsigned, `1..93` |
-| 56 | 0..177 | chunk | the fragment's consecutive payload bytes |
+| 55 | 1 | fragment count | unsigned, `1..98` |
+| 56 | 0..168 | chunk | the fragment's consecutive payload bytes |
 
-The header is exactly 56 bytes and the chunk budget is exactly `233 - 56 = 177`
-bytes. `fragment_count` must equal `ceil(total_payload_length / 177)`. Every
-non-final chunk must contain 177 bytes; the final chunk must contain precisely
-the remaining `1..177` bytes. Empty, padded, short intermediate, oversized, and
+The header is exactly 56 bytes and the chunk budget is exactly `224 - 56 = 168`
+bytes. `fragment_count` must equal `ceil(total_payload_length / 168)`. Every
+non-final chunk must contain 168 bytes; the final chunk must contain precisely
+the remaining `1..168` bytes. Empty, padded, short intermediate, oversized, and
 extra trailing data are rejected.
 
 ## 4. Reassembly and duplicate rules

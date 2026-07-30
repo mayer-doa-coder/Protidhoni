@@ -1,0 +1,19 @@
+Protidhoni Phase 5 sanitized automated run
+scenario: required-multi-hop
+topology: relay-required
+radio preset: SHORT_FAST
+expected links: 2
+required absent links: 1
+delivery: true
+route hops: 2
+latency ms: 18000.0
+reassembly outcome: accepted
+backend outcome: accepted
+packets received: 6
+packets rejected: 0
+duplicate fragments: 0
+duplicate messages: 0
+reports accepted: 1
+reports duplicate: 0
+reports rejected: 0
+pending reports: 0

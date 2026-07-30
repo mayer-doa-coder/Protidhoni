@@ -63,9 +63,9 @@ def _complete(reassembler: Reassembler, frames: list[bytes], *, start: float = 0
 
 def test_frozen_size_constants_are_internally_consistent() -> None:
     assert FRAME_HEADER_SIZE == 56
-    assert CHUNK_SIZE == 177
-    assert MAX_APPLICATION_PAYLOAD == 233
-    assert MAX_FRAGMENT_COUNT == 93
+    assert CHUNK_SIZE == 168
+    assert MAX_APPLICATION_PAYLOAD == 224
+    assert MAX_FRAGMENT_COUNT == 98
     assert MAX_FRAGMENT_COUNT == (MAX_REPORT_SIZE + CHUNK_SIZE - 1) // CHUNK_SIZE
 
 
@@ -115,7 +115,7 @@ def test_exact_maximum_payload_uses_the_frozen_maximum_fragment_count() -> None:
 
     assert len(payload) == MAX_REPORT_SIZE
     assert len(frames) == MAX_FRAGMENT_COUNT
-    assert len(decode_frame(frames[-1]).chunk) == MAX_REPORT_SIZE - CHUNK_SIZE * 92
+    assert len(decode_frame(frames[-1]).chunk) == MAX_REPORT_SIZE - CHUNK_SIZE * 97
 
 
 @pytest.mark.parametrize("mutation", ["magic", "version", "flags", "too_long"])

@@ -21,7 +21,11 @@ from uuid import UUID
 import rfc8785
 
 APPLICATION_PORT = 256
-MAX_APPLICATION_PAYLOAD = 233
+# Meshtastic's protobuf Data.payload field permits 233 bytes. The pinned daemon
+# accepts 231 PRIVATE_APP bytes, but Meshtasticator cannot relay that decoded
+# envelope. Its observed relay boundary is 225 bytes, so version 1 keeps one
+# byte of safety margin and uses the stricter end-to-end limit below.
+MAX_APPLICATION_PAYLOAD = 224
 FRAME_MAGIC = b"PD"
 FRAME_VERSION = 1
 FRAME_FLAGS = 0

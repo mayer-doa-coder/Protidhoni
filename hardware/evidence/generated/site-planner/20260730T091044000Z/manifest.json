@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "recorder": "phase5_tools.py",
+  "study_id": "dhaka-synthetic-p2p-v1",
+  "run_at": "2026-07-30T09:10:44.000Z",
+  "captured_at": "2026-07-30T09:13:22.249Z",
+  "planner_url": "https://site.meshtastic.org/",
+  "browser": "Google Chrome 150.0.7871.187 (headless)",
+  "input_sha256": "130cf6d7aeb48bfbeffca0daa90cce60b1e83c9314410f758c192dfc18683f0d",
+  "coordinate_classification": "synthetic-test-only-not-a-deployment-site",
+  "regulatory_status": "not-assessed-not-approved-for-transmission",
+  "observations": {
+    "coverage_summary": "78.9 square kilometres at or above -130 dBm; 5.1 km maximum usable range within the requested 5 km extent.",
+    "point_to_point_summary": "2.37 km; received -98.4 dBm; margin +31.6 dB; line of sight clear; first Fresnel zone 5 percent clear; marginal due to Fresnel obstruction."
+  },
+  "artifacts": [
+    {
+      "path": "coverage.geojson",
+      "sha256": "f7c8376ec1586277762f106a2b591a294ff29129ecba61c9ce8f1e0079b3bf4a"
+    },
+    {
+      "path": "point-to-point.png",
+      "sha256": "9192007c2a13aabdbd060f34da6efb4d8e70f86ba0020d3cf5a370c268d5f030"
+    }
+  ],
+  "limitations": [
+    "All inputs and outputs are predictions, not field measurements.",
+    "The coordinates are synthetic test data and are not a proposed deployment.",
+    "The selected ITM radio climate is maritime subtropical; it is not an urban-building model.",
+    "The model includes terrain but not explicit buildings, trees, weather, interference, installation loss, or hardware variation.",
+    "The radio frequency and power are modelling inputs only; legal use in Bangladesh requires a current local regulatory determination.",
+    "The observed source repository head does not prove the hosted planner was deployed from that exact commit."
+  ]
+}

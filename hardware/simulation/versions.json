@@ -12,6 +12,13 @@
     "linux_amd64_digest": "sha256:ee4346cd8f3e04292ae447f5d9e49f1f545f380d9b95bad242323e11828053cd"
   },
   "meshtastic_python": "2.7.11",
+  "radio_model": {
+    "modem_preset": "SHORT_FAST",
+    "frequency_hz": 908750000.0,
+    "tx_power_dbm": 30.0,
+    "sensitivity_dbm": -121.5,
+    "simulation_only": true
+  },
   "site_planner": {
     "official_url": "https://site.meshtastic.org/",
     "repository": "https://github.com/meshtastic/meshtastic-site-planner.git",
@@ -20,7 +27,8 @@
   "tcp_nodes": [
     {"role": "sender", "node_index": 0, "port": 4404},
     {"role": "relay", "node_index": 1, "port": 4405},
-    {"role": "gateway", "node_index": 2, "port": 4406}
+    {"role": "gateway", "node_index": 2, "port": 4406},
+    {"role": "gateway-two-relay", "node_index": 3, "port": 4407}
   ],
   "private_application_port": 256
 }

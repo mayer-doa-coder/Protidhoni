@@ -37,7 +37,7 @@ class FineTunedClassifier:
     _labels_by_index: tuple[ReportType, ...]
 
     @classmethod
-    def load(cls, raw_path: str) -> "FineTunedClassifier":
+    def load(cls, raw_path: str) -> FineTunedClassifier:
         path = Path(raw_path).expanduser().resolve()
         if not path.is_dir():
             raise RuntimeError(

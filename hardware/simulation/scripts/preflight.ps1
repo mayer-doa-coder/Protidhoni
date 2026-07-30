@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [ValidateSet("direct", "relay-required")]
+    [ValidateSet("direct", "relay-required", "two-relay-required")]
     [string]$Topology = "relay-required",
     [switch]$RequireIntegration
 )
@@ -31,7 +31,9 @@ $existingContainer = & docker ps -a --filter "name=^/Meshtastic$" --format '{{.N
 if ($existingContainer -eq "Meshtastic") {
     throw "Container 'Meshtastic' already exists. Exit its simulator, or run stop-mesh.ps1."
 }
-foreach ($port in 4404, 4405, 4406) {
+$topology = Get-Content -LiteralPath $topologyPath -Raw | ConvertFrom-Json
+$ports = 4404..(4403 + $topology.nodes.Count)
+foreach ($port in $ports) {
     $listener = Get-NetTCPConnection -State Listen -LocalPort $port -ErrorAction SilentlyContinue
     if ($null -ne $listener) {
         throw "TCP port $port is already in use. Stop the conflicting process before simulation."
@@ -49,5 +51,5 @@ if ($RequireIntegration) {
     }
 }
 
-Write-Host "Preflight passed for '$Topology' on TCP ports 4404-4406."
+Write-Host "Preflight passed for '$Topology' on TCP ports $($ports -join ', ')."
 

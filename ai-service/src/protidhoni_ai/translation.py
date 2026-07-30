@@ -83,7 +83,7 @@ class LibreTranslateProvider:
             method="POST",
         )
         try:
-            with urlopen(request, timeout=self.timeout_seconds) as response:  # noqa: S310
+            with urlopen(request, timeout=self.timeout_seconds) as response:
                 body = json.loads(response.read().decode("utf-8"))
         except HTTPError as error:
             raise TranslationUnavailable(

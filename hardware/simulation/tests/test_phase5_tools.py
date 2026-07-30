@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import shutil
+import struct
 import sys
 import tempfile
 import unittest
@@ -27,6 +28,17 @@ class Phase5SourceTests(unittest.TestCase):
         self.assertGreater(margins["0-1"], 0)
         self.assertGreater(margins["1-2"], 0)
         self.assertLess(margins["0-2"], 0)
+
+    def test_two_relay_topology_requires_both_relays(self) -> None:
+        topology = tools.validate_topology(
+            tools.SIMULATION_ROOT / "topologies" / "two-relay-required.json"
+        )
+        margins = topology["calculated_link_margins_db"]
+        self.assertGreater(margins["0-1"], 0)
+        self.assertGreater(margins["1-2"], 0)
+        self.assertGreater(margins["2-3"], 0)
+        self.assertLess(margins["0-2"], 0)
+        self.assertLess(margins["1-3"], 0)
 
     def test_scenario_matrix_is_complete(self) -> None:
         manifest = tools.load_scenarios()
@@ -96,7 +108,12 @@ class EvidenceTests(unittest.TestCase):
                 encoding="utf-8",
             )
             screenshot = source / "point-to-point.png"
-            screenshot.write_bytes(b"\x89PNG\r\n\x1a\nsynthetic-test")
+            screenshot.write_bytes(
+                b"\x89PNG\r\n\x1a\n"
+                + struct.pack(">I", 13)
+                + b"IHDR"
+                + struct.pack(">II", 1, 1)
+            )
             args = argparse.Namespace(
                 coverage=str(coverage),
                 point_to_point=str(screenshot),
@@ -110,10 +127,14 @@ class EvidenceTests(unittest.TestCase):
             )
             try:
                 manifest_path = tools.capture_site_study(args)
-                manifest = tools.load_json(manifest_path)
+                manifest = tools.validate_site_evidence(manifest_path)
                 self.assertEqual(len(manifest["artifacts"]), 2)
                 self.assertTrue((output / "coverage.geojson").is_file())
                 self.assertTrue((output / "point-to-point.png").is_file())
+
+                (output / "coverage.geojson").write_text("{}", encoding="utf-8")
+                with self.assertRaises(tools.ValidationError):
+                    tools.validate_site_evidence(manifest_path)
             finally:
                 shutil.rmtree(output, ignore_errors=True)
 

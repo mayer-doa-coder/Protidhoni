@@ -1,5 +1,6 @@
 import json
 from io import BytesIO
+from typing import Self
 from unittest.mock import patch
 
 import pytest
@@ -18,7 +19,7 @@ class FakeResponse:
     def read(self) -> bytes:
         return self._body.read()
 
-    def __enter__(self) -> "FakeResponse":
+    def __enter__(self) -> Self:
         return self
 
     def __exit__(self, *args) -> None:

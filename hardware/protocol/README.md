@@ -10,6 +10,12 @@ official upstream versions and source used to determine the byte budget. The
 Python package is the executable reference implementation; other languages must
 produce and consume the same bytes as `vectors/golden-v1.json`.
 
+During the integrated Phase 5 run, the originally proposed 233-byte ceiling was
+rejected by the pinned daemon/relay path. Version 1 was therefore refrozen at a
+measured conservative 224-byte application ceiling before release. `SPEC.md`,
+`versions.json`, the codec, and regenerated golden vectors record that decision;
+the report bytes and public API contract did not change.
+
 ## Local validation
 
 From this directory:

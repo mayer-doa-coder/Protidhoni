@@ -156,8 +156,15 @@ def generate() -> bytes:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", type=Path, help="fail unless PATH exactly matches generated data")
+    parser.add_argument("--write", type=Path, help="write generated vectors to PATH")
     args = parser.parse_args()
     generated = generate()
+    if args.check is not None and args.write is not None:
+        parser.error("--check and --write are mutually exclusive")
+    if args.write is not None:
+        args.write.write_bytes(generated)
+        print(f"golden vectors written: {args.write}")
+        return 0
     if args.check is None:
         sys.stdout.buffer.write(generated)
         return 0

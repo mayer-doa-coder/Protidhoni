@@ -14,6 +14,8 @@ $python = Join-Path $venv "Scripts\python.exe"
 $versionsPath = Join-Path $simulationRoot "versions.json"
 $requirementsPath = Join-Path $simulationRoot "requirements-meshtasticator.txt"
 $tool = Join-Path $PSScriptRoot "phase5_tools.py"
+$protocolRoot = Join-Path (Split-Path -Parent $simulationRoot) "protocol"
+$gatewayRoot = Join-Path (Split-Path -Parent $simulationRoot) "gateway"
 
 function Assert-LastExitCode([string]$Activity) {
     if ($LASTEXITCODE -ne 0) {
@@ -75,8 +77,20 @@ if ($interactive.Contains($originalLine)) {
 if (-not $interactive.Contains("TCP_PORT_OFFSET = 4404")) {
     throw "Pinned source no longer exposes the reviewed TCP port offset."
 }
+$configPath = Join-Path $checkout "lib\config.py"
+$config = [IO.File]::ReadAllText($configPath)
+$originalPreset = 'self.MODEM_PRESET = "LONG_FAST"'
+$simulationPreset = 'self.MODEM_PRESET = "SHORT_FAST"'
+if ($config.Contains($originalPreset)) {
+    $config = $config.Replace($originalPreset, $simulationPreset)
+    [IO.File]::WriteAllText($configPath, $config, [Text.UTF8Encoding]::new($false))
+} elseif (-not $config.Contains($simulationPreset)) {
+    throw "Pinned source no longer contains the reviewed modem preset constant."
+}
 $changed = @(& git -C $checkout status --short)
-if ($changed.Count -ne 1 -or $changed[0] -notmatch 'lib/interactive\.py$') {
+if ($changed.Count -ne 2 -or
+    -not ($changed -match 'lib/config\.py$') -or
+    -not ($changed -match 'lib/interactive\.py$')) {
     throw "Unexpected modifications in generated Meshtasticator checkout: $($changed -join ', ')"
 }
 
@@ -88,6 +102,8 @@ if (-not (Test-Path -LiteralPath $python)) {
 Assert-LastExitCode "pip upgrade"
 & $python -m pip install --disable-pip-version-check --quiet -r $requirementsPath
 Assert-LastExitCode "Pinned simulation dependency install"
+& $python -m pip install --disable-pip-version-check --quiet -e "$protocolRoot[dev,sender]" -e "$gatewayRoot[dev]"
+Assert-LastExitCode "Integrated protocol and gateway install"
 & $python -m pip check
 Assert-LastExitCode "Simulation dependency check"
 & $python -c "import importlib.metadata as m; assert m.version('meshtastic') == '2.7.11'"

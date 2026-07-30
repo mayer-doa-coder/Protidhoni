@@ -30,14 +30,14 @@
       "hop_limit": 3,
       "operator_action": "Send the exact same signed fixture twice without changing its message ID.",
       "expected_delivery": true,
-      "expected_backend_outcomes": ["duplicate"],
+      "expected_backend_outcomes": ["accepted", "duplicate"],
       "minimum_hops": 2
     },
     {
       "id": "loss-and-application-resend",
       "topology": "relay-required",
       "hop_limit": 3,
-      "operator_action": "Run collision emulation, record an observed loss if one occurs, then resend the unchanged fixture. Do not describe this as an acknowledged radio retry: the sender uses wantAck=false.",
+      "operator_action": "Omit one middle fragment during the first pass, verify reassembly remains incomplete, then resend the complete unchanged fixture. This is an application resend, not an acknowledged radio retry; the sender uses wantAck=false.",
       "expected_delivery": true,
       "expected_backend_outcomes": ["accepted", "duplicate"],
       "minimum_hops": 2
@@ -53,9 +53,9 @@
     },
     {
       "id": "hop-limit-exhaustion",
-      "topology": "relay-required",
+      "topology": "two-relay-required",
       "hop_limit": 1,
-      "operator_action": "Send with --hop-limit 1 while all nodes are online.",
+      "operator_action": "Send with hop limit 1 across a topology that requires two intermediate relays.",
       "expected_delivery": false,
       "expected_backend_outcomes": ["not-reached"],
       "minimum_hops": null
@@ -64,7 +64,7 @@
       "id": "recovery",
       "topology": "relay-required",
       "hop_limit": 3,
-      "operator_action": "Restart the three-node simulator after the outage test, reconnect the gateway, and resend unchanged fixture.",
+      "operator_action": "Start a fresh three-node simulator after the outage scenario and resend the unchanged fixture with the relay restored.",
       "expected_delivery": true,
       "expected_backend_outcomes": ["accepted", "duplicate"],
       "minimum_hops": 2

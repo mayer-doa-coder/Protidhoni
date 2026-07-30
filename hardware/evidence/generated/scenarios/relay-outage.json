@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "run_id": "f24116b9-68e1-4f58-90a2-88345672733c",
+  "scenario_id": "relay-outage",
+  "recorded_at": "2026-07-30T08:53:34.015Z",
+  "started_at": "2026-07-30T08:51:55.025Z",
+  "ended_at": "2026-07-30T08:53:33.972Z",
+  "recorder": "phase5_tools.py",
+  "fixture_identity": {
+    "vector_name": "bangla-sos-gps",
+    "message_id": "123e4567-e89b-42d3-a456-426614174000",
+    "payload_sha256": "ff3bc5c18e6a985cd82bceec89eab0251cff282bc23085a2172fc32d3736b45c"
+  },
+  "versions": {
+    "meshtasticator_commit": "17ceb8231079d87b070abc6132181e4c6b20202d",
+    "meshtasticd_image": "meshtastic/meshtasticd:2.7.26@sha256:23e92b1331a3a471eaef0c63cbca4365ca40b3111a9781cfdbe5a5114e5773d4",
+    "meshtastic_python": "2.7.11"
+  },
+  "observations": {
+    "delivery": false,
+    "route_hops": null,
+    "route_source": "not-available",
+    "duplicate_count": 0,
+    "latency_ms": null,
+    "reassembly_outcome": "not-observed",
+    "backend_outcome": "not-reached",
+    "notes": "Automated signed-fixture run; no report content or radio frame bytes retained."
+  },
+  "artifacts": [
+    {
+      "path": "generated/scenarios/relay-outage.log",
+      "sha256": "71c62aa496a84404c62a292ded84eebad5934466b54eaff838810a952690b249"
+    }
+  ]
+}

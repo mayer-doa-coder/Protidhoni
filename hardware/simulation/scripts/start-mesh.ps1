@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [ValidateSet("direct", "relay-required")]
+    [ValidateSet("direct", "relay-required", "two-relay-required")]
     [string]$Topology = "relay-required",
     [switch]$SkipSetup
 )
@@ -33,7 +33,9 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 Write-Host "Starting topology '$Topology'. Keep this terminal open."
-Write-Host "Verified node ports: sender=4404, relay=4405, gateway=4406."
+$topologyDefinition = Get-Content -LiteralPath $sourceTopology -Raw | ConvertFrom-Json
+$gatewayPort = 4403 + $topologyDefinition.nodes.Count
+Write-Host "Verified node ports: sender=4404, gateway=$gatewayPort."
 Write-Host "Type 'plot' for simulator route data, 'remove 1' for relay outage, or 'exit' to stop."
 
 $previousLocation = Get-Location

@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "run_id": "ca8ac9b0-17e2-4379-810d-594e86b8fa67",
+  "scenario_id": "recovery",
+  "recorded_at": "2026-07-30T08:56:47.095Z",
+  "started_at": "2026-07-30T08:55:34.378Z",
+  "ended_at": "2026-07-30T08:56:47.094Z",
+  "recorder": "phase5_tools.py",
+  "fixture_identity": {
+    "vector_name": "bangla-sos-gps",
+    "message_id": "123e4567-e89b-42d3-a456-426614174000",
+    "payload_sha256": "ff3bc5c18e6a985cd82bceec89eab0251cff282bc23085a2172fc32d3736b45c"
+  },
+  "versions": {
+    "meshtasticator_commit": "17ceb8231079d87b070abc6132181e4c6b20202d",
+    "meshtasticd_image": "meshtastic/meshtasticd:2.7.26@sha256:23e92b1331a3a471eaef0c63cbca4365ca40b3111a9781cfdbe5a5114e5773d4",
+    "meshtastic_python": "2.7.11"
+  },
+  "observations": {
+    "delivery": true,
+    "route_hops": 2,
+    "route_source": "daemon-log",
+    "duplicate_count": 1,
+    "latency_ms": 18016.0,
+    "reassembly_outcome": "duplicate",
+    "backend_outcome": "duplicate",
+    "notes": "Automated signed-fixture run; no report content or radio frame bytes retained."
+  },
+  "artifacts": [
+    {
+      "path": "generated/scenarios/recovery.log",
+      "sha256": "0ac980664d98cdbda057e54442f862332d91b9c0717a26bf8f46f3683e6d8d30"
+    }
+  ]
+}

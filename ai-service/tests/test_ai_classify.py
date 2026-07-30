@@ -1,5 +1,6 @@
 import json
 from io import BytesIO
+from typing import Self
 from unittest.mock import patch
 
 from fastapi.testclient import TestClient
@@ -19,7 +20,7 @@ class FakeTranslationResponse:
     def read(self) -> bytes:
         return self._body.read()
 
-    def __enter__(self) -> "FakeTranslationResponse":
+    def __enter__(self) -> Self:
         return self
 
     def __exit__(self, *args) -> None:

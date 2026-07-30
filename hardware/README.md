@@ -1,166 +1,169 @@
 # Phase 5: zero-cost LoRa simulation
 
-This phase provides **software/protocol simulation and hardware-readiness
-evidence**. It does not prove physical hardware, RF range, antennas, electrical
-design, power life, enclosures, regulatory compliance, or the phone-to-radio
+Phase 5 provides **software/protocol simulation and hardware-readiness
+evidence**. It does not prove physical radios, RF range, antennas, electrical
+design, battery life, enclosures, regulatory compliance, or a phone-to-radio
 BLE/USB link.
 
-## Ownership and prerequisites
+## Delivered components and ownership
 
-- Person B owns `hardware/protocol`; Person A owns `hardware/gateway`.
-- Person C owns `hardware/simulation`, `hardware/evidence`, and this file.
-- Run end-to-end scenarios only after the Person A and Person B Phase 5 commits
-  are merged with this branch.
-- Install Git, Docker Desktop with Linux containers, and 64-bit Python 3.12.
+- Person B: frozen framing, golden vectors, and sender in `hardware/protocol`.
+- Person A: bounded reassembly and backend bridge in `hardware/gateway`.
+- Person C: deterministic mesh scenarios, evidence, and this runbook in
+  `hardware/simulation` and `hardware/evidence`.
 
-The setup is pinned to Meshtasticator commit
+The end-to-end simulator exposed a pre-release protocol limit that required a
+reviewed cross-owner correction: although the firmware protobuf field permits
+233 bytes and the pinned daemon accepts 231 bytes, the pinned Meshtasticator
+relay path does not reliably relay that size. Protocol version 1 therefore uses
+a measured conservative ceiling of **224 application bytes**, documented in
+`protocol/SPEC.md` and enforced by regenerated golden vectors.
+
+The setup pins Meshtasticator commit
 `17ceb8231079d87b070abc6132181e4c6b20202d`, Meshtastic Python `2.7.11`, and
-daemon image `meshtastic/meshtasticd:2.7.26` by immutable image-index digest.
-The complete machine-readable pins are in `simulation/versions.json`.
+daemon image `meshtastic/meshtasticd:2.7.26` by immutable digest. Exact pins and
+the synthetic `SHORT_FAST` radio model are machine-readable in
+`simulation/versions.json`.
 
-The reviewed Meshtasticator source uses TCP ports **4404, 4405, and 4406** for
-nodes 0, 1, and 2. The integrated sender defaults to node 0 on `4404`, and the
-gateway defaults to node 2 on `4406`. The commands below keep those ports
-explicit so an older locally installed package cannot silently select an
-obsolete port.
+## Reproduce the complete scenario matrix
 
-## One-command simulator setup
-
-From the repository root in PowerShell:
+Prerequisites: Git, Docker Desktop using Linux containers, PowerShell, and
+64-bit Python 3.12. From the repository root:
 
 ```powershell
 .\hardware\simulation\scripts\setup.ps1
+docker compose up -d postgres backend
+.\hardware\simulation\scripts\run-scenarios.ps1
+.\hardware\simulation\scripts\validate.ps1 -RequireEvidenceArtifacts
 ```
 
-This creates only ignored state under `hardware/simulation/.runtime`, checks out
-the exact upstream commit, injects the digest-pinned daemon image into that
-generated checkout, installs pinned direct dependencies in an isolated Python
-3.12 environment, records `pip freeze`, pulls the image, validates the frozen
-fixture, and checks both topologies. Expected final line:
+`setup.ps1` creates only ignored state under `hardware/simulation/.runtime`,
+checks out the exact upstream commit, applies two verified compatibility edits
+to that generated checkout (digest-pinned daemon image and `SHORT_FAST`),
+installs pinned dependencies in an isolated environment, writes the canonical
+signed fixture, and validates the source definitions. Its final line is:
 
 ```text
 Phase 5 simulator is ready.
 ```
 
-Start the required-relay topology:
+The scenario runner starts a fresh Meshtasticator instance for each case, lets
+nodes exchange routing information, sends the original signed fixture, feeds
+gateway-node packet events through the real bounded gateway processor and
+backend client, and records only sanitized outcomes. Expected result lines are:
+
+```text
+PASS direct-delivery
+PASS required-multi-hop
+PASS duplicate-reception
+PASS loss-and-application-resend
+PASS relay-outage
+PASS hop-limit-exhaustion
+PASS recovery
+```
+
+The pinned daemon permits one TCP API client per simulated node. A second
+external sender or gateway connection evicts Meshtasticator's own client and
+invalidates the radio path. The integrated runner therefore uses the simulator's
+already-connected Meshtastic Python node interfaces while exercising the real
+sender plan, gateway processor, reassembler, backend client, and `POST /reports`
+path. The standalone TCP sender and receiver adapters are covered separately by
+their package tests.
+
+To run selected cases, repeat `-Scenario`:
+
+```powershell
+.\hardware\simulation\scripts\run-scenarios.ps1 `
+  -Scenario required-multi-hop,hop-limit-exhaustion
+```
+
+The runner requires an available backend at `http://127.0.0.1:8000` by default;
+use `-BackendUrl` only for an explicitly selected local integration target.
+
+## What the scenarios prove
+
+- `direct`: sender, passive relay node, and gateway are in direct range.
+- `relay-required`: only 0–1 and 1–2 have positive modelled margins, so delivery
+  to the gateway requires node 1.
+- `two-relay-required`: only adjacent links are available across nodes 0–3. A
+  hop limit of 1 can cross one relay but cannot cross both, proving exhaustion.
+- Duplicate reception resends the exact signed fixture and observes duplicate
+  suppression; backend outcome may be accepted on a clean database or duplicate
+  when the fixture already exists.
+- Loss/resend deterministically omits one middle fragment, verifies incomplete
+  reassembly, then performs a complete application resend. It is not an
+  acknowledged radio retry because `wantAck=false`.
+- Relay outage removes node 1; recovery uses a fresh topology with the relay
+  restored.
+
+Evidence in `evidence/generated/scenarios` records timestamps, route hops where
+exposed, duplicates, latency, reassembly/backend outcome, pinned versions, and
+SHA-256 hashes of sanitized logs. It contains no report content, frame bytes,
+exact incident coordinates, signatures, keys, or tokens.
+
+## Manual topology exploration
+
+For visual/manual exploration only:
 
 ```powershell
 .\hardware\simulation\scripts\start-mesh.ps1 -Topology relay-required -SkipSetup
 ```
 
-Keep that terminal open. Expected ports are sender `4404`, relay `4405`, and
-gateway `4406`. The synthetic 0-to-2 link is deliberately outside the pinned
-model while 0-to-1 and 1-to-2 have positive modelled margins.
+Nodes start at TCP ports 4404 onward. A three-node topology uses gateway port
+4406; the four-node topology uses gateway port 4407. Type `plot` for simulator
+route data, `remove 1` for an outage, or `exit` to stop. Clean up a stranded
+container with `simulation/scripts/stop-mesh.ps1`.
 
-## Integrated signed-report run
+## Site Planner evidence
 
-After all Phase 5 branches are merged, create a separate integration environment:
+The official hosted Meshtastic Site Planner was run using the reviewed synthetic
+inputs in `simulation/site-planner/study-input.json`. The byte-preserved GeoJSON,
+point-to-point PNG, hash-bound manifest, observed summaries, and modelling
+limitations are under `evidence/generated/site-planner`.
 
-```powershell
-py -3.12 -m venv .\hardware\.venv
-.\hardware\.venv\Scripts\python.exe -m pip install -e .\hardware\protocol -e .\hardware\gateway
-docker compose up -d backend
-```
+The representative prediction reported 78.9 km² at or above -130 dBm within the
+requested extent. Its 2.37 km point-to-point path reported -98.4 dBm and +31.6 dB
+margin, but only 5% first-Fresnel clearance and a marginal verdict. These values
+are predictions, not field measurements. The Site Planner study uses its named
+LongFast sensitivity profile; the deterministic packet scenarios deliberately
+use SHORT_FAST for practical multi-fragment test duration. Neither setting is a
+legal authorization to transmit.
 
-Use three PowerShell terminals.
-
-Terminal 1 — simulator:
-
-```powershell
-.\hardware\simulation\scripts\start-mesh.ps1 -Topology relay-required -SkipSetup
-```
-
-Terminal 2 — gateway on node 2:
+## Validation commands
 
 ```powershell
-.\hardware\.venv\Scripts\python.exe -m protidhoni_lora_gateway.cli `
-  --meshtastic-host 127.0.0.1 --meshtastic-port 4406 `
-  --backend-url http://127.0.0.1:8000
+.\hardware\simulation\.runtime\.venv\Scripts\python.exe -m pytest .\hardware\protocol\tests .\hardware\gateway\tests
+.\hardware\simulation\.runtime\.venv\Scripts\python.exe -m ruff check .\hardware\protocol .\hardware\gateway .\hardware\simulation
+.\hardware\simulation\.runtime\.venv\Scripts\python.exe .\hardware\protocol\scripts\generate_vectors.py --check .\hardware\protocol\vectors\golden-v1.json
+.\hardware\simulation\.runtime\.venv\Scripts\python.exe -m unittest discover .\hardware\simulation\tests -v
+.\hardware\simulation\scripts\validate.ps1 -RequireEvidenceArtifacts
 ```
-
-Terminal 3 — sender on node 0:
-
-```powershell
-.\hardware\.venv\Scripts\python.exe -m protidhoni_lora_protocol.sender `
-  .\hardware\simulation\.runtime\signed-report.json `
-  --host 127.0.0.1 --port 4404 --destination '^all' --hop-limit 3
-```
-
-The sender should report a validated message ID and fragment count. The gateway
-should report an accepted or idempotent duplicate report without printing its
-content. The backend must accept the original signed bytes; no relay re-signs
-the fixture. Stop the gateway with `Ctrl+C`, type `exit` in Meshtasticator, and
-remove a stranded simulator container only when needed:
-
-```powershell
-.\hardware\simulation\scripts\stop-mesh.ps1
-```
-
-## Scenario checklist
-
-The exact matrix and expectations are in `simulation/scenarios.json`.
-
-- Direct delivery: use `direct`, send once with hop limit 3.
-- Required multi-hop: use `relay-required`, send once with hop limit 3.
-- Duplicate reception: send the unchanged fixture twice; backend idempotency
-  must prevent a second stored report.
-- Loss/resend: run with collision observation enabled, record loss only if it is
-  actually observed, and resend unchanged. The sender uses `wantAck=false`, so
-  this is an application resend—not proof of acknowledged radio retry.
-- Relay outage: in the simulator console enter `remove 1`, then send; node 2
-  must not receive in the required-relay topology.
-- Hop exhaustion: restart `relay-required` and send with `--hop-limit 1`; it
-  must not reach node 2.
-- Recovery: restart all three nodes, reconnect the gateway, and resend with hop
-  limit 3; delivery must recover.
-
-Capture start/end UTC timestamps and observed metrics, then use
-`simulation/scripts/record-evidence.ps1`. The validator requires delivery,
-duplicate count, latency for delivery, route/hops when available, reassembly
-outcome, and backend outcome. Validate everything with:
-
-```powershell
-.\hardware\simulation\scripts\validate.ps1
-py -3.12 -m unittest discover .\hardware\simulation\tests -v
-```
-
-Generated evidence is kept in `hardware/evidence/generated`; source definitions
-stay outside it. Never manually rewrite a run record or Site Planner export.
-
-## Site Planner
-
-Follow `simulation/site-planner/README.md`. The representative study remains
-marked `not-run` until the official browser tool actually produces a coverage
-export and point-to-point result. Predictions are not measurements, and the
-modelled frequency/power are not a regulatory approval.
 
 ## Troubleshooting
 
-- **Docker engine unavailable:** start Docker Desktop and select Linux containers.
-- **Container `Meshtastic` exists:** exit the old simulator or run `stop-mesh.ps1`.
-- **Port 4404–4406 in use:** stop the previous simulator/process; preflight fails
-  rather than connecting to an unknown service.
-- **Python 3.12 missing:** install it, then verify `py -3.12 --version`.
-- **Gateway/sender module missing:** merge Person A and B, recreate
-  `hardware/.venv`, and rerun the editable installs.
-- **No delivery immediately after startup:** wait for all node daemons to finish
-  exchanging NodeInfo before sending, and verify gateway=4406/sender=4404.
-- **No deterministic loss:** collision observation does not guarantee a loss;
-  never claim one unless a run records it.
+- Docker unavailable: start Docker Desktop and select Linux containers.
+- `Meshtastic` container exists: run `simulation/scripts/stop-mesh.ps1`.
+- Port 4404–4407 is occupied: stop the old simulator/process; preflight fails
+  closed rather than connecting to an unknown service.
+- Python 3.12 is missing: install it and verify `py -3.12 --version`.
+- Backend unavailable: run `docker compose up -d postgres backend`, inspect
+  `docker compose logs backend`, and confirm its required local environment.
+- Immediate no-delivery: do not reduce the 40-second routing warm-up; verify the
+  pinned generated checkout has only the two setup-managed compatibility edits.
 
 ## Future physical acceptance checklist and documentation-only BOM
 
-No purchase is required for this hackathon. A future physical build would need
-three mutually compatible Meshtastic-supported LoRa boards, three region-correct
-antennas/connectors, safe USB power/data cables, power supplies or protected
-batteries, enclosures, and one host/phone connection for sender and gateway
-roles. Exact part numbers must be chosen only after regional radio requirements
+No purchase is required for this hackathon. A future build would need three
+mutually compatible Meshtastic-supported LoRa boards; three region-correct
+antennas/connectors; safe USB power/data cables; power supplies or protected
+batteries; enclosures; and one supported host/phone connection for sender and
+gateway roles. Choose exact parts only after current regional radio requirements
 and supported firmware targets are reviewed.
 
-Before any “hardware proven” claim, test: firmware flashing and rollback;
-phone-to-radio BLE/USB transport; three-node signed-report delivery with a
-required physical relay; corruption/loss/outage/recovery; measured current and
-battery life; antenna matching and safe connector handling; thermal/enclosure
-behaviour; measured range in permitted locations; backend idempotency and
-signature preservation; and current Bangladesh spectrum, power, licensing, and
-deployment requirements with the relevant authority.
+Before any “hardware proven” claim, test firmware flashing/rollback;
+phone-to-radio BLE/USB; required-relay signed delivery; corruption, loss,
+outage, and recovery; measured current and battery life; antenna matching and
+connector safety; thermal/enclosure behaviour; range and interference in
+permitted locations; signature preservation and backend idempotency; and
+current Bangladesh spectrum, power, licensing, and deployment requirements
+with the relevant authority.

@@ -1,0 +1,19 @@
+Protidhoni Phase 5 sanitized automated run
+scenario: hop-limit-exhaustion
+topology: two-relay-required
+radio preset: SHORT_FAST
+expected links: 3
+required absent links: 3
+delivery: false
+route hops: None
+latency ms: None
+reassembly outcome: not-observed
+backend outcome: not-reached
+packets received: 0
+packets rejected: 0
+duplicate fragments: 0
+duplicate messages: 0
+reports accepted: 0
+reports duplicate: 0
+reports rejected: 0
+pending reports: 0

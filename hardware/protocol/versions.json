@@ -3,7 +3,10 @@
   "meshtastic_firmware": {
     "tag": "v2.7.26.54e0d8d",
     "commit": "54e0d8d0ab2ff56b3a9ce967e53f79e49af560fb",
-    "data_payload_length": 233,
+    "data_payload_field_length": 233,
+    "private_app_daemon_payload_length": 231,
+    "meshtasticator_safe_payload_length": 224,
+    "validation": "Meshtasticd 2.7.26 accepts 231 bytes; Meshtasticator relays 225 but not 231, so the protocol reserves one byte and uses 224",
     "source": "https://github.com/meshtastic/firmware/blob/54e0d8d0ab2ff56b3a9ce967e53f79e49af560fb/src/mesh/generated/meshtastic/mesh.pb.h"
   },
   "meshtasticator": {

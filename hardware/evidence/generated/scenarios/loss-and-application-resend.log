@@ -1,0 +1,20 @@
+Protidhoni Phase 5 sanitized automated run
+scenario: loss-and-application-resend
+topology: relay-required
+radio preset: SHORT_FAST
+expected links: 2
+required absent links: 1
+delivery: true
+route hops: 2
+latency ms: 58047.0
+reassembly outcome: duplicate
+backend outcome: duplicate
+first pass incomplete: true
+packets received: 11
+packets rejected: 0
+duplicate fragments: 3
+duplicate messages: 2
+reports accepted: 0
+reports duplicate: 1
+reports rejected: 0
+pending reports: 0
