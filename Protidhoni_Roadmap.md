@@ -59,7 +59,7 @@ Pick these and don't relitigate them mid-sprint. Reasoning is in brackets.
 | Deployment | **Docker Compose locally, Render or Railway or Fly.io for the live demo** | Free tiers, fast to deploy, no cloud-console yak-shaving. |
 | SMS/USSD gateway | **Twilio (or a local aggregator like SSL Wireless/Alpha SMS if you can get a sandbox key in time)** | Twilio's trial tier is enough for a live demo; disclose in the submission that this stands in for a local telco integration. |
 | Encryption/signing | **libsodium (Ed25519 signatures, X25519 key exchange)** | Battle-tested, small, available as a library on every platform you're using. |
-| Hardware (stretch) | **ESP32 + SX1276 LoRa module running Meshtastic firmware** | Don't write your own LoRa mesh protocol; Meshtastic already solved multi-hop LoRa relaying and is open source. |
+| LoRa simulation / hardware readiness | **Meshtasticator + Meshtastic Site Planner**; optional **Wokwi** for ESP32-only controller tests | This costs nothing while exercising Meshtastic's Linux-native device software in a simulated mesh and modelling terrain/link budgets. Wokwi does not simulate the SX1276 radio, so it is not RF evidence. Physical ESP32 + LoRa nodes remain post-hackathon work. |
 
 ---
 
@@ -159,9 +159,12 @@ Real lesson from real prior art: a widely used mesh-messaging app (**Bridgefy**)
 - **Data minimisation**: never collect a phone's contact list, real name, or precise home address unless the user explicitly puts it in a report; state this plainly in your README (Section 12 requires you to state what you collect and why).
 - **Encrypt data at rest** in Postgres for anything sensitive (medical needs, exact locations of vulnerable people) and use TLS for every network hop that touches the internet.
 
-### 5.6 Hardware (stretch, whoever has spare time — likely Person B or C)
-- A LoRa relay node (ESP32 + SX1276) running **Meshtastic** firmware extends the mesh's physical range far beyond Bluetooth's ~100m, and can be solar-powered for genuinely infrastructure-independent operation — directly matching the "resilient hardware" example in Track A.
-- If you can't get physical hardware working reliably in time, Section 05 explicitly allows a working prototype video plus schematics instead of a live demo — plan for that as your fallback from day one rather than discovering it's needed on the last day.
+### 5.6 Zero-cost LoRa simulation and hardware-readiness evidence (shared, with split ownership in §7)
+- Use the official [Meshtasticator](https://github.com/meshtastic/Meshtasticator) interactive simulator to run multiple Linux-native Meshtastic instances in Docker. It simulates the hardware interfaces, including the LoRa chip, while exercising the device application and routing code; use it to test application framing, relay hops, duplicates, loss, and node outages without buying radios.
+- Use the official [Meshtastic Site Planner](https://site.meshtastic.org/) for a separate propagation study. Save the transmitter/receiver locations, antenna-height assumptions, radio preset, terrain result, line-of-sight/Fresnel result, and link margin. Label every value as a simulation assumption, not a field measurement.
+- The existing signed Protidhoni report contract remains unchanged. A versioned, bounded **transport frame** may split its serialized bytes across Meshtastic application packets, but reassembly must reproduce the original signed report and the existing backend must accept and verify it. This is a transport encoding, not a new public API contract.
+- Wokwi may optionally demonstrate ESP32 controller logic, GPIO, a display, or a wiring diagram. Its supported-hardware catalogue does not include an SX1276 LoRa radio, so a Wokwi demo must never be described as a Meshtastic RF or range test.
+- Simulation can demonstrate software/protocol compatibility and make the later hardware build reproducible. It cannot validate an actual antenna, RF interference, receiver sensitivity, electrical wiring, battery life, thermal behaviour, enclosure/weatherproofing, or local radio compliance. Those stay explicitly unverified until real hardware is tested.
 
 ### 5.7 Data / Mapping (owned by Person C)
 - The responder dashboard's map view (Leaflet + OpenStreetMap) — pins colour-coded by `priority`, clickable to see the full report, filterable by `type` and `verification.status`.
@@ -194,8 +197,12 @@ The trick isn't "be careful," it's **structural separation**: nobody can conflic
   /dashboard/               <- Person C only
       src/
       README.md
-  /hardware/                <- stretch, whoever picks it up
-      firmware/
+  /hardware/                <- Phase 5 only; subdirectories have exclusive owners
+      /protocol/             <- Person B only: frame specification, codec, and golden vectors
+      /gateway/              <- Person A only: simulated-radio-to-existing-API bridge
+      /simulation/           <- Person C only: Meshtasticator/Site Planner scenarios and scripts
+      /evidence/             <- Person C only: generated reports, metrics, and limitations
+      README.md              <- Person C only, after the protocol interface is frozen
   /docs/
       architecture.md
       demo-script.md
@@ -203,9 +210,9 @@ The trick isn't "be careful," it's **structural separation**: nobody can conflic
 ```
 
 Rules that make this work:
-1. **Person A** = Backend + Cloud + Security. Only touches `/backend`.
-2. **Person B** = Client + Mesh Network. Only touches `/mobile-client`.
-3. **Person C** = AI/ML/NLP + Dashboard + Data. Touches `/ai-service` and `/dashboard` — these are naturally sequential for one person (train/build the model, then build the UI that shows its output) so there's no internal conflict either.
+1. **Person A** = Backend + Cloud + Security. Normally touches `/backend`; in Phase 5 also exclusively owns `/hardware/gateway`.
+2. **Person B** = Client + Mesh Network. Normally touches `/mobile-client`; in Phase 5 also exclusively owns `/hardware/protocol`.
+3. **Person C** = AI/ML/NLP + Dashboard + Data. Normally touches `/ai-service` and `/dashboard`; in Phase 5 also exclusively owns `/hardware/simulation`, `/hardware/evidence`, and `/hardware/README.md`.
 4. Each person works on their **own branch** (`feature/backend`, `feature/client`, `feature/ai`) and commits small, frequent, descriptive commits — Section 06 Rule 05 explicitly checks your commit history, so don't squash three days of work into one commit at the deadline.
 5. Merge to `main` at the end of each phase (see §7), not continuously — this avoids the awkward mid-feature half-working states colliding.
 6. The **only** shared file anyone edits together is the top-level `README.md`, and only in short scheduled turns (e.g. each person adds their section, 15 minutes, done) — never simultaneously.
@@ -240,17 +247,46 @@ Each phase lists what "done" looks like and who owns what. Tags: **MUST** = need
 ### Phase 4 — SMS/USSD gateway — **SHOULD**
 - Person A: Twilio (or local aggregator) integration that maps an incoming SMS/USSD session to the same message schema and calls the same `POST /reports` endpoint the app uses. This is intentionally late in the plan — it reuses the contract and backend that already exist rather than being built in parallel with them.
 
-### Phase 5 — Hardware stretch — **LATER unless you're clearly ahead**
-- LoRa relay node with Meshtastic firmware. If you don't reach this, the video-plus-schematics fallback (Section 05) is a legitimate, planned-for outcome, not a failure.
+### Phase 5 — Zero-cost LoRa simulation and hardware-readiness evidence — **SHOULD; physical hardware is LATER**
+
+**Phase 5A — freeze the internal transport interface before parallel work**
+- All three: agree on the frame version, byte budget measured against the pinned Meshtastic build/configuration, message identifier/digest, fragment numbering, maximum fragment count and reassembly size, timeout, and duplicate rules. Do not guess an Internet value for the packet budget; record the value produced by the chosen simulator/build.
+- Person B: commit the short frame specification and golden encode/decode vectors under `/hardware/protocol` first. Merge that small interface-only commit to `main`, then update all three feature branches from `main`. After this checkpoint, only Person B edits `/hardware/protocol`; Persons A and C consume it read-only.
+- This internal framing must decode to the frozen report schema byte-for-byte (or to its defined canonical serialization) so the original Ed25519 signature still verifies. No `/contracts` or public endpoint change is authorized by this phase.
+
+**Person A / `feature/backend` — simulated LoRa uplink gateway**
+- Work only in `/hardware/gateway` unless a demonstrated backend defect requires a separately reviewed backend fix.
+- Implement a local bridge that receives application frames from a Meshtasticator node through Meshtastic's supported TCP/Python interface, performs bounded reassembly and digest validation, and submits the reconstructed report through the existing `POST /reports` path. Do not create a simulator-only public backend endpoint.
+- Preserve backend idempotency and signature verification. Reject malformed, conflicting, expired, incomplete, or oversized frame sets, and do not log report text, exact coordinates, tokens, or keys.
+- Test valid multi-fragment ingestion, duplicate and reordered fragments, corrupt digests, conflicting fragment metadata, timeout cleanup, bounded memory, repeated report submission, backend rejection, and temporary backend unavailability.
+
+**Person B / `feature/client` — transport framing and sender**
+- Work only in `/hardware/protocol` for the Phase 5 transport package; change `/mobile-client` only if a simulator-only export adapter is separately justified and kept behind a development flag.
+- Implement the versioned codec and a CLI/test sender that accepts an existing signed Protidhoni report, serializes it deterministically, creates bounded Meshtastic application frames, and sends them through the simulator's supported interface. Never re-sign at a relay or put a private key in simulator configuration.
+- Test exact encode/reassemble round trips for every report type, boundary sizes, Unicode/Bangla text, duplicate/reordered/missing/corrupt fragments, unsupported versions, invalid counts, and deterministic golden vectors shared with Person A.
+- Do not claim that this validates the phone-to-radio BLE/USB link. That link remains a real-device acceptance test in the LATER phase.
+
+**Person C / `feature/ai` — mesh scenarios, propagation study, and evidence**
+- Work only in `/hardware/simulation`, `/hardware/evidence`, and `/hardware/README.md`; no AI-model or dashboard contract change is needed.
+- Pin the Meshtasticator/Meshtastic versions and provide reproducible Docker/PowerShell commands for at least three simulated nodes, including a topology where sender and gateway require an intermediate relay.
+- Automate and record a scenario matrix: direct delivery, required multi-hop delivery, duplicate reception, packet loss/retry, intermediate-node outage or partition, TTL/hop-limit exhaustion, and recovery. Report delivery result, route/hops where available, duplicate count, latency, and reassembly/backend outcome without sensitive report content.
+- Save one representative Site Planner study with coordinates and radio/antenna assumptions, coverage or point-to-point exports, and the planner's limitations. Do not present predicted coverage as measured coverage and do not assert that a simulated radio setting is legally deployable without a current local regulatory check.
+- Maintain `/hardware/README.md` with one-command setup where practical, exact version pins, expected output, troubleshooting, evidence provenance, and an honest hardware acceptance checklist/BOM for a future build. The BOM is documentation only; nobody is asked to purchase it.
+
+**Definition of done**
+- A signed report fixture traverses at least three simulated Meshtastic nodes with one required relay, is reconstructed unchanged, is accepted by the existing backend, and still passes the existing signature verification.
+- Automated tests show safe behaviour for corruption, duplicates, reordering, missing fragments, limits, timeout, hop exhaustion, and backend failure. Existing backend, mobile, AI, dashboard, and contract test suites still pass.
+- A clean-machine runbook reproduces the simulation, and `/hardware/evidence` records versioned commands, non-sensitive logs/metrics, topology, Site Planner exports, and limitations. Generated evidence is clearly separated from source and no result is fabricated or manually rewritten.
+- The demo language says **"software/protocol simulation and hardware-readiness evidence"**, not **"hardware proven"**. Physical RF, electrical, power, antenna, enclosure, regulatory, and phone-to-radio tests remain LATER.
 
 ### Phase 6 — Integration testing, demo, and submission packaging — **MUST**
-- All three: run the full path together (mesh + SMS + backend + AI + dashboard) at least twice before recording anything.
+- All three: run the full path together (phone mesh + SMS + backend + AI + dashboard) at least twice before recording anything. If Phase 5 is included in the demo, also run the separate signed-report → simulated Meshtastic multi-hop → gateway → existing backend path twice.
 - Record the 3-minute demo video, build the 6–10 slide deck, write the README (setup/run instructions — judges will actually try to run this), fill in every field Section 07 requires.
 - Publish the Facebook post per Section 08's exact required content, submit the repo/post URLs through the site, and make sure the repository is public with an OSI-approved licence (you already have MIT — keep it) before the deadline. Don't squash your commit history right before submitting.
 
 ### LATER — the genuinely complete, post-hackathon version
 If you keep building after 2 August, this is what "done" looks like at production scale, roughly in order:
-- Real LoRa hardware network with solar-powered community relay nodes, professionally weatherproofed.
+- Build and validate the documented LoRa design on real, locally permitted hardware: phone-to-radio BLE/USB, ESP32/LoRa wiring, antennas, RF range/interference, power/solar runtime, thermals, and weatherproofed community relay nodes.
 - iOS React Native bridge and device-validation pass. Nearby Connections supports iOS as well as Android, but this hackathon plan implements and validates its bridge on Android first.
 - A properly fine-tuned, larger BanglaBERT model trained on a real, larger, ethically sourced dataset of crisis messages rather than a hackathon-sized sample.
 - Formal partnership with a telco or the Bangladesh Fire Service/Red Crescent for real SMS short-code and IVR access rather than a Twilio trial number.
@@ -272,7 +308,7 @@ If you keep building after 2 August, this is what "done" looks like at productio
 ## 9. Known limitations, said out loud (better for judges to hear it from you)
 
 - The hackathon client is Android-first. Nearby Connections itself supports Android and iOS, but the Phase 0 React Native bridge and device testing cover Android only; an iOS bridge and device-validation pass remain post-hackathon work. State this plainly rather than letting a judge discover it.
-- BLE/Wi‑Fi Direct mesh range is roughly 100m per hop; true wide-area resilience needs the LoRa hardware layer, which is a stretch goal here, not baseline.
+- BLE/Wi‑Fi Direct range varies substantially by device and environment; true wide-area resilience needs another transport such as the proposed LoRa layer. Phase 5 validates its software path and models propagation only—no real RF range, antenna, power, electrical, regulatory, or phone-to-radio claim is made.
 - A hackathon-scale fine-tuning dataset for BanglaBERT will be small; be upfront in your submission that classification accuracy is a proof of concept, not production-grade.
 - The SMS/USSD gateway will most likely run on a trial/sandbox telco account rather than a real Bangladeshi short code — disclose this as a simulation of the intended integration.
 

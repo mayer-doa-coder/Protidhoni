@@ -31,8 +31,10 @@ INSERT INTO reports (
 VALUES (
     %(message_id)s::uuid, %(sender_pubkey_hash)s, %(created_at)s::timestamptz,
     %(report_type)s, %(language)s, %(payload)s,
-    CASE WHEN %(lat)s IS NULL OR %(lng)s IS NULL THEN NULL
-         ELSE ST_SetSRID(ST_MakePoint(%(lng)s, %(lat)s), 4326)::geography
+    CASE WHEN %(lat)s::double precision IS NULL OR %(lng)s::double precision IS NULL THEN NULL
+         ELSE ST_SetSRID(
+             ST_MakePoint(%(lng)s::double precision, %(lat)s::double precision), 4326
+         )::geography
     END,
     %(raw_message)s, %(priority)s, %(verification_status)s, %(corroboration_count)s
 )
@@ -82,6 +84,12 @@ _SELECT_REPORT_SQL = """
 SELECT raw_message, priority, verification_status, corroboration_count, received_at
 FROM reports
 WHERE message_id = %(message_id)s::uuid
+"""
+
+_REPORT_EXISTS_SQL = """
+SELECT EXISTS (
+    SELECT 1 FROM reports WHERE message_id = %(message_id)s::uuid
+) AS exists
 """
 
 _QUEUE_OUTBOUND_INSTRUCTION_SQL = """
@@ -146,11 +154,24 @@ def _insert_params(report: Report) -> dict:
 
 async def insert_report(pool: AsyncConnectionPool, report: Report) -> IngestOutcome:
     params = _insert_params(report)
-    async with pool.connection() as conn:
-        async with conn.cursor() as cur:
-            await cur.execute(_INSERT_SQL, params)
-            row = await cur.fetchone()
-            return "accepted" if row is not None else "duplicate"
+    async with pool.connection() as conn, conn.cursor() as cur:
+        await cur.execute(_INSERT_SQL, params)
+        row = await cur.fetchone()
+        return "accepted" if row is not None else "duplicate"
+
+
+async def report_exists(pool: AsyncConnectionPool, *, message_id: str) -> bool:
+    """Return whether a report id is already persisted.
+
+    Gateway callbacks use this before rate limiting so a legitimate provider
+    retry does not consume a second unit of the caller's quota.
+    """
+    async with pool.connection() as conn, conn.cursor(row_factory=dict_row) as cur:
+        await cur.execute(_REPORT_EXISTS_SQL, {"message_id": message_id})
+        row = await cur.fetchone()
+    if row is None:  # SELECT EXISTS always returns one row on a healthy database.
+        raise RuntimeError("report existence query returned no row")
+    return bool(row["exists"])
 
 
 async def queue_instruction(pool: AsyncConnectionPool, report: Report) -> IngestOutcome:
@@ -161,22 +182,21 @@ async def queue_instruction(pool: AsyncConnectionPool, report: Report) -> Ingest
     """
     params = _insert_params(report)
     expected_raw = report.model_dump(mode="json")
-    async with pool.connection() as conn:
-        async with conn.cursor(row_factory=dict_row) as cur:
-            await cur.execute(_INSERT_SQL, params)
-            inserted_row = await cur.fetchone()
-            outcome: IngestOutcome = "accepted" if inserted_row is not None else "duplicate"
+    async with pool.connection() as conn, conn.cursor(row_factory=dict_row) as cur:
+        await cur.execute(_INSERT_SQL, params)
+        inserted_row = await cur.fetchone()
+        outcome: IngestOutcome = "accepted" if inserted_row is not None else "duplicate"
 
-            if inserted_row is None:
-                await cur.execute(_SELECT_RAW_REPORT_SQL, {"message_id": report.message_id})
-                existing = await cur.fetchone()
-                if existing is None or existing["raw_message"] != expected_raw:
-                    raise InstructionConflictError(
-                        "message_id is already used by different report content"
-                    )
+        if inserted_row is None:
+            await cur.execute(_SELECT_RAW_REPORT_SQL, {"message_id": report.message_id})
+            existing = await cur.fetchone()
+            if existing is None or existing["raw_message"] != expected_raw:
+                raise InstructionConflictError(
+                    "message_id is already used by different report content"
+                )
 
-            await cur.execute(_QUEUE_OUTBOUND_INSTRUCTION_SQL, {"message_id": report.message_id})
-            return outcome
+        await cur.execute(_QUEUE_OUTBOUND_INSTRUCTION_SQL, {"message_id": report.message_id})
+        return outcome
 
 
 async def list_reports(
@@ -216,10 +236,9 @@ async def list_reports(
 
 async def get_report(pool: AsyncConnectionPool, *, message_id: str) -> Report | None:
     """Return one server-normalized report for responder-only operations."""
-    async with pool.connection() as conn:
-        async with conn.cursor(row_factory=dict_row) as cur:
-            await cur.execute(_SELECT_REPORT_SQL, {"message_id": message_id})
-            row = await cur.fetchone()
+    async with pool.connection() as conn, conn.cursor(row_factory=dict_row) as cur:
+        await cur.execute(_SELECT_REPORT_SQL, {"message_id": message_id})
+        row = await cur.fetchone()
     return _report_from_row(row) if row is not None else None
 
 
@@ -232,27 +251,26 @@ async def update_report_verification(
     note_was_provided: bool,
 ) -> Report | None:
     """Atomically validate and persist a responder verification transition."""
-    async with pool.connection() as conn:
-        async with conn.cursor(row_factory=dict_row) as cur:
-            await cur.execute(_SELECT_REPORT_FOR_UPDATE_SQL, {"message_id": message_id})
-            current_row = await cur.fetchone()
-            if current_row is None:
-                return None
+    async with pool.connection() as conn, conn.cursor(row_factory=dict_row) as cur:
+        await cur.execute(_SELECT_REPORT_FOR_UPDATE_SQL, {"message_id": message_id})
+        current_row = await cur.fetchone()
+        if current_row is None:
+            return None
 
-            current_status: VerificationStatus = current_row["verification_status"]
-            if not verification_transition_allowed(current_status, status):
-                raise VerificationTransitionError(current_status, status)
+        current_status: VerificationStatus = current_row["verification_status"]
+        if not verification_transition_allowed(current_status, status):
+            raise VerificationTransitionError(current_status, status)
 
-            await cur.execute(
-                _UPDATE_VERIFICATION_SQL,
-                {
-                    "message_id": message_id,
-                    "status": status,
-                    "responder_note": responder_note,
-                    "note_was_provided": note_was_provided,
-                },
-            )
-            updated_row = await cur.fetchone()
-            if updated_row is None:  # Defensive: the row is locked and cannot disappear here.
-                raise RuntimeError("verification update did not return the locked report")
-            return _report_from_row(updated_row)
+        await cur.execute(
+            _UPDATE_VERIFICATION_SQL,
+            {
+                "message_id": message_id,
+                "status": status,
+                "responder_note": responder_note,
+                "note_was_provided": note_was_provided,
+            },
+        )
+        updated_row = await cur.fetchone()
+        if updated_row is None:  # Defensive: the row is locked and cannot disappear here.
+            raise RuntimeError("verification update did not return the locked report")
+        return _report_from_row(updated_row)

@@ -12,8 +12,8 @@ valid messages.
 from __future__ import annotations
 
 import re
-from uuid import UUID
 from typing import Literal
+from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 

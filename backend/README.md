@@ -10,6 +10,8 @@ Phase 2 adds authenticated responder operations to the Phase 1 report ingestion/
 - `PATCH /reports/{id}` — responder-only verification transition. It persists the optional responder note without adding it to the public report contract; invalid/regressive transitions return `409`.
 - `POST /instructions` — responder-only signed `INSTRUCTION` or `SAFE_ROUTE` message. It verifies Ed25519 identity, persists the message idempotently, and creates an `outbound_instructions` queue entry.
 - `POST /translations` — responder-only request containing a stored `message_id` and `bn`/`en` target language. The backend reads the report itself, then sends its text to the isolated AI service; it never accepts browser-provided report text or exposes translation-provider credentials.
+- `POST /gateway/sms` — Twilio-facing. One authenticated inbound SMS becomes one signed report; the response is empty TwiML (`<Response/>`). Idempotent by the provider's `MessageSid`.
+- `POST /gateway/ussd` — offline-simulator-facing. Advances one USSD menu turn, returning plain text (`CON …` to continue, `END …` to finish) and storing a report only when the session completes. Idempotent by `sessionId`. A live USSD provider needs its own adapter.
 - `POST /ai/classify` — implemented by the separate AI service, not this process.
 
 Database-backed endpoints require `PROTIDHONI_DATABASE_URL`. The three responder-only endpoints additionally require `PROTIDHONI_RESPONDER_TOKEN` and the matching `X-Responder-Token` header. If the server token is unset, access remains disabled with `503`; missing/incorrect request credentials return `401`. Set `PROTIDHONI_CORS_ORIGINS` to a comma-separated allow-list of dashboard origins; wildcards and URL paths are rejected.
@@ -32,9 +34,47 @@ Per `Protidhoni_Roadmap.md` §5.5, this service states plainly what it collects 
 - `location.lat/lng` (optional, user- or GPS-supplied) — needed for the map view and bbox queries responders use to triage by area.
 - `payload.people_count` / `payload.needs` (optional) — structured hints (e.g. "medical", "shelter") needed so responders and the classifier can triage without re-reading full text every time.
 
-**Not collected, ever, by this backend:** phone numbers, contact lists, device MAC addresses, or real names. `sender_pubkey_hash` is cryptographic, not tied to hardware or carrier identity (see the Bridgefy lesson in `Protidhoni_Roadmap.md` §8) — a report can only reveal a real name or phone number if a user voluntarily types it into `payload.text`, in which case it's covered by the encryption-at-rest described below for the report types where that's most likely to matter.
+**Provider metadata not persisted by this backend:** carrier-supplied phone numbers, contact lists, device MAC addresses, and real names. The SMS/USSD path is handed a caller number; it normalizes it, reduces it to a peppered HMAC used only for in-memory rate limiting, and discards the original. User-entered `payload.text` is retained as submitted and can contain a phone number or name if the user deliberately types one. `sender_pubkey_hash` is cryptographic and is not derived from carrier or transport identity.
 
 **Logging:** this service currently emits no application logs at all (`grep`-confirmed: no `logging`/`print` calls exist in `src/`). If logging is added later, `payload.text`, `location`, and `sender_pubkey` must never appear in a log line — log identifiers (`message_id`, outcome, HTTP status) instead.
+
+## SMS/USSD gateway (Phase 4)
+
+The third path into the system: a phone with no app, no internet, and no ability to sign anything still reaches responders. See the Phase 4 addendum in `../contracts/README.md` for the contract implications.
+
+**The gateway signs on the sender's behalf.** The frozen schema requires a valid Ed25519 signature on every report and a feature phone can produce none, so the gateway holds its own keypair and signs the transcribed report itself. That signature attests *"this gateway received this SMS/USSD session and transcribed it"* — **not** *"this device authored this content"*, which is what a mesh report's signature attests. Every report from this path therefore shares one `sender_pubkey_hash`, published as `gateway_pubkey_hash` on `GET /health` so the dashboard can label the channel honestly.
+
+**Provider-supplied caller metadata is never stored.** Each adapter receives a caller number, requires canonical E.164 form, and HMACs it with `PROTIDHONI_GATEWAY_PHONE_PEPPER` for an in-memory limit of five new reports per minute. Provider retries are recognized before consuming quota. The original number is discarded and never copied into a report. A number deliberately typed in SMS `Body` remains part of the user's report text; the tests cover both sides of this boundary.
+
+**One ingestion policy.** Both gateway routes and `POST /reports` use `ingestion.ingest_signed_report`, which verifies the Ed25519 signature before applying the appropriate limiter and calling the database. Device reports are limited by verified signer hash; gateway reports are limited by the peppered caller pseudonym because all gateway reports share one signing identity.
+
+**No synchronous AI dependency.** Gateway reports are stored with `priority: null`. The ingestion request does not call the AI service, so an unavailable AI container cannot drop an incoming crisis message. Any future enrichment worker is a separate pipeline and is not claimed as part of Phase 4.
+
+**Location honesty.** Coordinates typed into an SMS (`23.8103,90.4125` anywhere in the body) are recorded as `source: "manual"` — a human assertion, never a device measurement, so `"gps"` is never claimed. USSD menus cannot practically capture coordinates on a feature phone, so those reports carry `source: "none"` rather than a fabricated position.
+
+Set `PROTIDHONI_GATEWAY_PRIVATE_KEY`, `PROTIDHONI_GATEWAY_WEBHOOK_TOKEN`, `PROTIDHONI_GATEWAY_USSD_WEBHOOK_TOKEN`, and `PROTIDHONI_GATEWAY_PHONE_PEPPER`; leaving the credential required by an adapter blank disables that adapter with `503`. The SMS and USSD secrets must be different. Generate the signing seed and pepper with:
+
+```powershell
+python .\backend\scripts\configure_gateway_env.py
+```
+
+The helper fills only missing or blank values in the ignored `.env`, preserves all existing settings, and never prints a secret. For the zero-cost simulator, the generated `GATEWAY_WEBHOOK_TOKEN` acts as the local Twilio-signature test secret. For a real Twilio number, replace only that value with the Account Auth Token from Twilio Console; the gateway never receives it from an incoming request.
+
+### Exercising it at zero cost
+
+`scripts/simulate_sms_gateway.py` exercises both paths without mocking backend behavior. Its SMS request uses Twilio's documented form-signature algorithm. Its USSD request uses Protidhoni's separate local-simulator signature and is not represented as Twilio or as a live aggregator. No telco account, credit card, or tunnel is required.
+
+```powershell
+python .\backend\scripts\simulate_sms_gateway.py sms
+python .\backend\scripts\simulate_sms_gateway.py ussd
+python .\backend\scripts\simulate_sms_gateway.py sms --body "সাহায্য দরকার! ৩ জন আটকা পড়েছি, পানি নেই"
+```
+
+For local use the simulator reads the generated values directly from the ignored root `.env`; it never displays them. Explicit `PROTIDHONI_GATEWAY_WEBHOOK_TOKEN` and `PROTIDHONI_GATEWAY_USSD_WEBHOOK_TOKEN` process variables override the file when needed.
+
+The `sms` run also replays its own callback to prove provider retries deduplicate instead of putting the same incident on a responder's map twice.
+
+**Disclosed limitation, per `Protidhoni_Roadmap.md` §9:** no traffic has traversed a real Bangladeshi short code or USSD aggregator. A Twilio SMS trial can use the existing SMS adapter after configuring its Auth Token and public HTTPS callback URL. A local USSD provider requires a small adapter for that provider's documented field names, response convention, and authentication method; it is not honestly a configuration-only change. Live-provider interoperability remains a manual check.
 
 ## Encryption at rest
 
@@ -47,6 +87,22 @@ python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().d
 ```
 
 The parallel PostGIS `reports.location` geography column stays plaintext so `GET /reports?bbox=` can keep using PostGIS, but for `SOS` and `MEDICAL_NEED` reports it stores only coordinates rounded to two decimal places. The exact vulnerable-person coordinates remain available only in encrypted JSONB and are decrypted on authorized reads.
+
+### Existing databases created before encryption
+
+Phase 1 volumes may contain plaintext `SOS`/`MEDICAL_NEED` rows. Migrate them before starting the updated backend. The command is fail-closed and transactional: it leaves valid current ciphertext untouched, refuses mixed/corrupt rows or ciphertext from another key, and prints counts rather than report content.
+
+Back up the database and preserve the original `DATA_ENCRYPTION_KEY`. Then build the current backend image, stop only the API process, run the dry check, and apply it:
+
+```powershell
+docker compose build backend
+docker compose stop backend
+docker compose run --rm --no-deps backend python -m protidhoni_api.migrate_legacy_encryption
+docker compose run --rm --no-deps backend python -m protidhoni_api.migrate_legacy_encryption --apply
+docker compose up -d backend
+```
+
+Run the dry check again after applying; it should report zero legacy plaintext rows. Never generate a replacement encryption key for an existing volume: ciphertext written with a lost key cannot be recovered.
 
 ## Run locally
 
@@ -110,10 +166,10 @@ $env:PYTHONPATH = "src"
 python -m pytest tests -q
 ```
 
-The self-contained suite covers signing, rate limiting, report validation, responder authentication, verification transitions, instruction validation, and HTTP response behavior. Phase 2 was additionally exercised against a real `postgis/postgis:16-3.4` container: migration, authenticated status changes, terminal-state rejection, signed instruction queuing, idempotent retry, UUID/content conflict rejection, and persisted audit/outbox state all passed.
+The self-contained suite covers signing, shared ingestion, provider-bound authentication, request limits, idempotent retries, phone-metadata minimisation, report validation, rate limiting, responder authentication, verification transitions, instruction validation, and HTTP response behavior. Phase 2 was additionally exercised against a real `postgis/postgis:16-3.4` container.
 
 ## Deployment hand-off
 
-The Docker image is deployment-ready. Person A must connect this repository to the selected Render, Railway, or Fly.io project and set `PROTIDHONI_DATABASE_URL`, `PROTIDHONI_AI_INTERNAL_TOKEN`, `PROTIDHONI_RESPONDER_TOKEN`, and `PROTIDHONI_DATA_ENCRYPTION_KEY` as platform secrets, plus set `PROTIDHONI_CORS_ORIGINS` to the deployed dashboard origin; that account-level action is intentionally not performed from this repository.
+The Docker image is deployment-ready. Person A must connect this repository to the selected host and set the database, AI, responder, encryption, gateway signing, Twilio SMS, simulated-USSD, and phone-pepper values as platform secrets. `PROTIDHONI_GATEWAY_PUBLIC_BASE_URL` must be the externally configured HTTPS origin when a proxy changes the URL seen by FastAPI.
 
 **TLS:** production traffic terminates TLS at the chosen host's edge (Render/Fly.io/Railway all provision this automatically for their default domains) — no backend code change is needed for the hackathon scope. Internal traffic between the backend, AI service, and Postgres stays on the private Docker Compose network and is not separately encrypted; this is a documented hackathon-scale tradeoff, not an oversight.
