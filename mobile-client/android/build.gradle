@@ -25,7 +25,10 @@ buildscript {
         compileSdkVersion = 36
         targetSdkVersion = 36
         ndkVersion = "27.1.12297006"
-        kotlinVersion = "2.1.20"
+        // Gradle 9.5.1 embeds Kotlin 2.3.20. Keep project Kotlin and KSP aligned
+        // so included/native builds do not mix incompatible compiler metadata.
+        kotlinVersion = "2.3.20"
+        kspVersion = "2.3.9"
     }
     repositories {
         google()

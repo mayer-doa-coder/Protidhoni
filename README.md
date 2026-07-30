@@ -151,10 +151,14 @@ This starts Postgres+PostGIS, the backend, the AI service, and the dashboard tog
 
 ### Android
 
+For the complete clean-machine setup, simultaneous two-phone commands, offline
+Nearby acceptance procedure, signing-key setup, and APK/AAB release checklist,
+see [`docs/android-two-device-and-release.md`](docs/android-two-device-and-release.md).
+
 ```powershell
 $env:JAVA_HOME = "C:\path\to\jdk-17"
 cd mobile-client
-npm install
+npm ci
 npx react-native run-android
 ```
 
