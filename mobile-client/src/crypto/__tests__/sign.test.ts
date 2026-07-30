@@ -1,10 +1,15 @@
 import * as ed from "@noble/ed25519";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
+import { base64UrlDecode } from "../base64url";
 import { canonicalizeToBytes } from "../canonical";
+
+// identity.ts wraps the device key via the native KeystoreWrap module; see
+// src/native/__mocks__/KeystoreWrap.ts for the reversible-marker mock.
+jest.mock("../../native/KeystoreWrap");
+
 import { _resetDeviceIdentityCacheForTests, getOrCreateDeviceIdentity } from "../identity";
 import { createSignedReport } from "../sign";
-import { base64UrlDecode } from "../base64url";
 
 const SIGNED_SUBSET_KEYS = [
   "schema_version",

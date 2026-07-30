@@ -44,6 +44,10 @@ jest.mock("../../native/NearbyConnections", () => {
   };
 });
 
+// identity.ts (imported transitively via relay.ts) wraps the device key via
+// the native KeystoreWrap module; see src/native/__mocks__/KeystoreWrap.ts.
+jest.mock("../../native/KeystoreWrap");
+
 import { NearbyConnections } from "../../native/NearbyConnections";
 import { startMeshRelay } from "../relay";
 
