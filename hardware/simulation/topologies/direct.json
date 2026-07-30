@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "topology_id": "direct",
+  "description": "Synthetic coordinates: sender and gateway are within the pinned model's estimated direct range.",
+  "nodes": [
+    {"index": 0, "role": "sender", "x_m": 0.0, "y_m": 0.0, "height_m": 1.0, "router": false, "repeater": false, "client_mute": false, "hop_limit": 3, "antenna_gain_dbi": 0.0, "neighbor_info": false},
+    {"index": 1, "role": "relay", "x_m": 900.0, "y_m": 0.0, "height_m": 1.0, "router": false, "repeater": false, "client_mute": false, "hop_limit": 3, "antenna_gain_dbi": 0.0, "neighbor_info": false},
+    {"index": 2, "role": "gateway", "x_m": 1800.0, "y_m": 0.0, "height_m": 1.0, "router": false, "repeater": false, "client_mute": false, "hop_limit": 3, "antenna_gain_dbi": 0.0, "neighbor_info": false}
+  ],
+  "expected_links": [[0, 1], [0, 2], [1, 2]],
+  "required_absent_links": []
+}
+

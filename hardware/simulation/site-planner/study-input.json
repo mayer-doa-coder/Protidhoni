@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "study_id": "dhaka-synthetic-p2p-v1",
+  "result_status": "not-run",
+  "purpose": "Representative propagation-model input for software and hardware-readiness evidence only.",
+  "coordinate_classification": "synthetic-test-only-not-a-deployment-site",
+  "planner": {
+    "official_url": "https://site.meshtastic.org/",
+    "source_head_observed_on_2026-07-30": "1f1c6bd4741824a582e500114510ef090bf527a6"
+  },
+  "transmitter": {
+    "site_name": "Protidhoni synthetic sender",
+    "latitude": 23.8103,
+    "longitude": 90.4125,
+    "power_w": 0.1,
+    "frequency_mhz": 915.0,
+    "height_agl_m": 10.0,
+    "antenna_gain_dbi": 2.15
+  },
+  "receiver": {
+    "site_name": "Protidhoni synthetic gateway",
+    "latitude": 23.8238,
+    "longitude": 90.4305,
+    "sensitivity_dbm": -130.0,
+    "height_agl_m": 3.0,
+    "antenna_gain_dbi": 2.15,
+    "cable_loss_db": 1.0
+  },
+  "simulation": {
+    "modem_preset_label": "LongFast",
+    "environment": "urban",
+    "maximum_range_km": 5.0,
+    "terrain_resolution_m": 90,
+    "requested_outputs": [
+      "coverage-geojson",
+      "point-to-point-profile-screenshot"
+    ]
+  },
+  "regulatory_status": "not-assessed-not-approved-for-transmission",
+  "limitations": [
+    "All inputs and outputs are predictions, not field measurements.",
+    "The coordinates are synthetic test data and are not a proposed deployment.",
+    "The model includes terrain but not buildings, trees, weather, interference, installation loss, or hardware variation.",
+    "The radio frequency and power are modelling inputs only; legal use in Bangladesh requires a current local regulatory determination.",
+    "The observed source repository head does not prove the hosted planner was deployed from that exact commit."
+  ]
+}
+

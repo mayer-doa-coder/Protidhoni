@@ -1,0 +1,73 @@
+{
+  "schema_version": 1,
+  "fixture": {
+    "vector_name": "bangla-sos-gps",
+    "message_id": "123e4567-e89b-42d3-a456-426614174000",
+    "payload_sha256": "ff3bc5c18e6a985cd82bceec89eab0251cff282bc23085a2172fc32d3736b45c"
+  },
+  "scenarios": [
+    {
+      "id": "direct-delivery",
+      "topology": "direct",
+      "hop_limit": 3,
+      "operator_action": "Send the signed fixture once with all three nodes online.",
+      "expected_delivery": true,
+      "expected_backend_outcomes": ["accepted", "duplicate"],
+      "minimum_hops": 1
+    },
+    {
+      "id": "required-multi-hop",
+      "topology": "relay-required",
+      "hop_limit": 3,
+      "operator_action": "Send once with the relay online; topology validation must show no sender-to-gateway link.",
+      "expected_delivery": true,
+      "expected_backend_outcomes": ["accepted", "duplicate"],
+      "minimum_hops": 2
+    },
+    {
+      "id": "duplicate-reception",
+      "topology": "relay-required",
+      "hop_limit": 3,
+      "operator_action": "Send the exact same signed fixture twice without changing its message ID.",
+      "expected_delivery": true,
+      "expected_backend_outcomes": ["duplicate"],
+      "minimum_hops": 2
+    },
+    {
+      "id": "loss-and-application-resend",
+      "topology": "relay-required",
+      "hop_limit": 3,
+      "operator_action": "Run collision emulation, record an observed loss if one occurs, then resend the unchanged fixture. Do not describe this as an acknowledged radio retry: the sender uses wantAck=false.",
+      "expected_delivery": true,
+      "expected_backend_outcomes": ["accepted", "duplicate"],
+      "minimum_hops": 2
+    },
+    {
+      "id": "relay-outage",
+      "topology": "relay-required",
+      "hop_limit": 3,
+      "operator_action": "Remove node 1 in the Meshtasticator console before sending.",
+      "expected_delivery": false,
+      "expected_backend_outcomes": ["not-reached"],
+      "minimum_hops": null
+    },
+    {
+      "id": "hop-limit-exhaustion",
+      "topology": "relay-required",
+      "hop_limit": 1,
+      "operator_action": "Send with --hop-limit 1 while all nodes are online.",
+      "expected_delivery": false,
+      "expected_backend_outcomes": ["not-reached"],
+      "minimum_hops": null
+    },
+    {
+      "id": "recovery",
+      "topology": "relay-required",
+      "hop_limit": 3,
+      "operator_action": "Restart the three-node simulator after the outage test, reconnect the gateway, and resend unchanged fixture.",
+      "expected_delivery": true,
+      "expected_backend_outcomes": ["accepted", "duplicate"],
+      "minimum_hops": 2
+    }
+  ]
+}
