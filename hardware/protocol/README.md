@@ -36,13 +36,14 @@ network connection:
 protidhoni-lora-send .\signed-report.json --dry-run
 ```
 
-Send the report to the first Meshtasticator TCP node (the simulator starts at
-port `4403`):
+Send the report to Meshtasticator node 0. At the frozen simulator commit,
+`lib/interactive.py` defines `TCP_PORT_OFFSET = 4404`, so node 0 listens on
+port `4404`:
 
 ```powershell
 protidhoni-lora-send .\signed-report.json `
   --host 127.0.0.1 `
-  --port 4403 `
+  --port 4404 `
   --destination '^all' `
   --channel-index 0 `
   --hop-limit 3

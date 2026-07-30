@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import io
 import importlib.metadata
+import io
 import json
 import uuid
 from pathlib import Path
@@ -10,19 +10,20 @@ import pytest
 
 from protidhoni_lora_protocol import APPLICATION_PORT, encode_report
 from protidhoni_lora_protocol.sender import (
+    DEFAULT_TCP_PORT,
     MAX_JSON_INPUT_BYTES,
-    SendPlan,
     SenderConfigurationError,
     SenderDependencyError,
     SenderOptions,
     SenderTransportError,
+    SendPlan,
+    _meshtastic_interface_factory,
     build_send_plan,
     load_report_bytes,
     read_report,
     run_cli,
     send_plan,
     validate_options,
-    _meshtastic_interface_factory,
 )
 
 
@@ -58,7 +59,7 @@ class FakeInterface:
         self.fail_close = fail_close
         self.closed = 0
 
-    def sendData(self, data: bytes, destinationId: str, **kwargs):  # noqa: N802, ANN003
+    def sendData(self, data: bytes, destinationId: str, **kwargs):
         if self.fail_at is not None and len(self.calls) == self.fail_at:
             raise OSError("simulated send failure")
         self.calls.append((data, destinationId, kwargs))
@@ -121,6 +122,11 @@ def test_sender_options_fail_closed(options: SenderOptions) -> None:
         validate_options(options)
 
 
+def test_default_sender_port_matches_pinned_meshtasticator_node_zero() -> None:
+    assert DEFAULT_TCP_PORT == 4404
+    assert SenderOptions().port == 4404
+
+
 def test_send_plan_uses_private_app_metadata_order_and_pacing() -> None:
     plan = build_send_plan(_report(text="x" * 700))
     fake = FakeInterface()
@@ -133,7 +139,7 @@ def test_send_plan_uses_private_app_metadata_order_and_pacing() -> None:
 
     options = SenderOptions(
         host="127.0.0.1",
-        port=4403,
+        port=4404,
         destination="!1a2b3c4d",
         channel_index=2,
         hop_limit=4,
@@ -143,7 +149,7 @@ def test_send_plan_uses_private_app_metadata_order_and_pacing() -> None:
     assert send_plan(plan, options, interface_factory=factory, sleeper=sleeps.append) == len(
         plan.frames
     )
-    assert factory_calls == [("127.0.0.1", 4403, 20)]
+    assert factory_calls == [("127.0.0.1", 4404, 20)]
     assert [call[0] for call in fake.calls] == list(plan.frames)
     assert all(call[1] == "!1a2b3c4d" for call in fake.calls)
     assert all(
@@ -279,7 +285,7 @@ def test_unexpected_upstream_errors_are_wrapped_and_close_is_attempted() -> None
     plan = build_send_plan(_report())
 
     class UpstreamInterface(FakeInterface):
-        def sendData(self, data: bytes, destinationId: str, **kwargs):  # noqa: N802, ANN003
+        def sendData(self, data: bytes, destinationId: str, **kwargs):
             raise ValueError("upstream-specific failure")
 
     fake = UpstreamInterface()
@@ -293,7 +299,7 @@ def test_meshtastic_dependency_must_match_the_exact_reviewed_version(
 ) -> None:
     monkeypatch.setattr(importlib.metadata, "version", lambda _name: "2.7.12")
     with pytest.raises(SenderDependencyError, match="2.7.11 is required"):
-        _meshtastic_interface_factory("127.0.0.1", 4403, 30)
+        _meshtastic_interface_factory("127.0.0.1", 4404, 30)
 
 
 def test_missing_meshtastic_dependency_has_an_actionable_error(
@@ -304,4 +310,4 @@ def test_missing_meshtastic_dependency_has_an_actionable_error(
 
     monkeypatch.setattr(importlib.metadata, "version", missing)
     with pytest.raises(SenderDependencyError, match=r"pip install -e"):
-        _meshtastic_interface_factory("127.0.0.1", 4403, 30)
+        _meshtastic_interface_factory("127.0.0.1", 4404, 30)

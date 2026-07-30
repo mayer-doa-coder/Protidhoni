@@ -13,9 +13,10 @@ import json
 import re
 import sys
 import time
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, BinaryIO, Callable, Protocol, Sequence, TextIO
+from typing import Any, BinaryIO, Protocol, TextIO
 from uuid import UUID
 
 from .codec import (
@@ -29,7 +30,7 @@ from .codec import (
 
 MESHTASTIC_PYTHON_VERSION = "2.7.11"
 DEFAULT_TCP_HOST = "127.0.0.1"
-DEFAULT_TCP_PORT = 4403
+DEFAULT_TCP_PORT = 4404
 DEFAULT_HOP_LIMIT = 3
 DEFAULT_CHANNEL_INDEX = 0
 DEFAULT_INTERVAL_SECONDS = 1.0
@@ -58,7 +59,7 @@ class SenderTransportError(SenderError):
 
 
 class MeshtasticInterface(Protocol):
-    def sendData(  # noqa: N802 - name is fixed by the upstream Meshtastic API
+    def sendData(
         self,
         data: bytes,
         destinationId: str,
