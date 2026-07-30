@@ -166,7 +166,7 @@ def main() -> int:
     except FileNotFoundError:
         print(f"golden vector file does not exist: {args.check}", file=sys.stderr)
         return 1
-    if not hmac_compare(existing, generated):
+    if not hmac_compare(_normalize_windows_newlines(existing), generated):
         print(f"golden vector file is stale or manually modified: {args.check}", file=sys.stderr)
         return 1
     print(f"golden vectors verified: {args.check}")
@@ -179,6 +179,15 @@ def hmac_compare(left: bytes, right: bytes) -> bool:
     import hmac
 
     return hmac.compare_digest(left, right)
+
+
+def _normalize_windows_newlines(value: bytes) -> bytes:
+    """Undo Git's CRLF checkout conversion without normalizing other content."""
+
+    without_crlf = value.replace(b"\r\n", b"\n")
+    if b"\r" in without_crlf:
+        return value
+    return without_crlf
 
 
 if __name__ == "__main__":

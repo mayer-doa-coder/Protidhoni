@@ -21,6 +21,46 @@ python -m ruff check .
 python scripts/generate_vectors.py --check vectors/golden-v1.json
 ```
 
+## Send a signed report to a simulated node
+
+Install the exactly pinned Meshtastic client alongside the protocol package:
+
+```powershell
+python -m pip install -e ".[sender]"
+```
+
+Validate and inspect a non-sensitive transmission summary without opening a
+network connection:
+
+```powershell
+protidhoni-lora-send .\signed-report.json --dry-run
+```
+
+Send the report to the first Meshtasticator TCP node (the simulator starts at
+port `4403`):
+
+```powershell
+protidhoni-lora-send .\signed-report.json `
+  --host 127.0.0.1 `
+  --port 4403 `
+  --destination '^all' `
+  --channel-index 0 `
+  --hop-limit 3
+```
+
+The command sends binary `PRIVATE_APP` packets, never text messages. It does not
+generate, load, or re-sign with a private key. Its output contains only the
+message ID and byte/fragment counts; report text, coordinates, keys, digests,
+and frame bodies are never printed. The Meshtastic channel must be configured
+with a non-default key outside this command and outside Git.
+
+For reproducible scripts, the same entry point is available without relying on
+the shell-installed command name:
+
+```powershell
+python -m protidhoni_lora_protocol.sender .\signed-report.json --dry-run
+```
+
 The fixed keys in the vector generator are public test material. They must never
 be copied into an application, simulator secret, or Meshtastic channel.
 
