@@ -47,6 +47,12 @@ h1 { margin: 0; font-size: clamp(1.8rem, 4vw, 2.8rem); }
 .report-details + .report-details { border-top: 1px solid #dbe3eb; margin-top: 14px; padding-top: 14px; }
 .popup-heading { align-items: center; display: flex; gap: 10px; justify-content: space-between; }
 .priority-chip { border-radius: 999px; color: #fff; font-size: .72rem; font-weight: 700; padding: 4px 8px; text-transform: uppercase; }
+/* Channel provenance. Outlined rather than filled so it reads as metadata and
+   never competes with the priority chip, which is the triage signal. */
+.channel-chip { border-radius: 999px; border: 1px solid currentColor; cursor: help; font-size: .68rem; font-weight: 700; padding: 3px 7px; text-transform: uppercase; }
+.channel-gateway { background: #fff7ed; border-color: #c2410c; color: #9a3412; }
+.channel-device { background: #f1f5f9; border-color: #94a3b8; color: #475569; }
+.channel-unknown { background: #f8fafc; border-color: #cbd5e1; color: #64748b; }
 .report-popup dl { display: grid; gap: 6px; margin: 0; }
 .report-popup dl div { display: grid; gap: 8px; grid-template-columns: 75px 1fr; }
 .report-popup dt { color: #64748b; }

@@ -33,6 +33,62 @@ describe('dashboard API client', () => {
     await expect(getReports()).rejects.toThrow('invalid report collection');
   });
 
+  it('reads the gateway signing identity from health', async () => {
+    const gatewayHash = 'G'.repeat(43);
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            service: 'backend',
+            status: 'ok',
+            version: '0.1.0',
+            gateway_pubkey_hash: gatewayHash,
+          }),
+          {status: 200},
+        ),
+      ),
+    );
+
+    await expect(getApiHealth()).resolves.toMatchObject({gateway_pubkey_hash: gatewayHash});
+  });
+
+  it('tolerates a backend that publishes no gateway identity', async () => {
+    // Both an explicit null and an older backend omitting the field entirely
+    // must load cleanly rather than breaking the responder view.
+    for (const body of [
+      {service: 'backend', status: 'ok', version: '0.1.0', gateway_pubkey_hash: null},
+      {service: 'backend', status: 'ok', version: '0.1.0'},
+    ]) {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockResolvedValue(new Response(JSON.stringify(body), {status: 200})),
+      );
+
+      const health = await getApiHealth();
+      expect(health.gateway_pubkey_hash ?? null).toBeNull();
+    }
+  });
+
+  it('rejects a malformed gateway identity instead of enabling false attribution', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            service: 'backend',
+            status: 'ok',
+            version: '0.1.0',
+            gateway_pubkey_hash: 'not-a-sha256-hash',
+          }),
+          {status: 200},
+        ),
+      ),
+    );
+
+    await expect(getApiHealth()).rejects.toThrow('invalid gateway identity');
+  });
+
   it('sends a responder-entered token only for an authorized verification patch', async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(JSON.stringify({message_id: 'report id'}), {status: 200}),
