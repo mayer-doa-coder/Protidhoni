@@ -1,0 +1,14 @@
+# Phase 5 evidence and golden vectors carry a SHA-256 digest of their own raw
+# bytes, recorded inside a companion JSON manifest and checked by
+# hardware/simulation/scripts/phase5_tools.py (validate-evidence,
+# validate-site-evidence) and hardware/protocol/scripts/generate_vectors.py.
+#
+# Without this file, a contributor's local `core.autocrlf=true` (the common
+# Windows Git default) silently rewrites LF to CRLF on checkout, changing the
+# file's bytes and invalidating every recorded hash — with no error until the
+# validator is actually run. `-text` disables that conversion unconditionally,
+# on every platform and every local core.autocrlf setting, so a fresh clone
+# always reproduces exactly the bytes that were committed and hashed.
+hardware/evidence/generated/** -text
+hardware/simulation/site-planner/study-input.json -text
+hardware/protocol/vectors/** -text

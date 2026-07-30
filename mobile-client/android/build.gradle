@@ -1,3 +1,23 @@
+// Fail fast and clearly on the wrong JDK, rather than 20+ seconds into the
+// build with a cryptic native-toolchain error. JDK 25 (and other post-17
+// releases tested against this project) fail `configureCMakeDebug` with
+// "WARNING: A restricted method in java.lang.System has been called" because
+// the Android Gradle Plugin's CMake integration was not validated against the
+// JDK's newer restricted-method enforcement (JEP 472 and later). JDK 17 is the
+// only runtime confirmed, by an actual clean `assembleDebug` run, to complete
+// native configuration and produce a working APK — see mobile-client/README.md.
+def runningJavaVersion = JavaVersion.current()
+if (runningJavaVersion != JavaVersion.VERSION_17) {
+    throw new GradleException(
+        "Protidhoni Android build requires JDK 17, but Gradle is running on " +
+        "${runningJavaVersion} (${System.getProperty('java.home')}).\n" +
+        "Set JAVA_HOME to a JDK 17 installation before running Gradle or " +
+        "react-native run-android, for example:\n" +
+        "  \$env:JAVA_HOME = \"C:\\path\\to\\jdk-17\"\n" +
+        "See mobile-client/README.md for the full explanation and Windows setup steps."
+    )
+}
+
 buildscript {
     ext {
         buildToolsVersion = "36.0.0"

@@ -24,7 +24,9 @@ Phase 2 extends the core offline path to every user-creatable report type while 
 
 ## Run and verify on devices
 
-Use JDK 17 for Android builds; it is the runtime validated with this project's native SQLite/CMake dependency. Android's build guidance explains that terminal Gradle uses `JAVA_HOME` and recommends keeping the IDE and terminal on the same JDK. On this project, JDK 25 fails during native dependency configuration, while JDK 17 completes `assembleDebug`. Set `JAVA_HOME` before running Gradle or the React Native Android command.
+Use JDK 17 for Android builds; it is the runtime validated with this project's native SQLite/CMake dependency. Android's build guidance explains that terminal Gradle uses `JAVA_HOME` and recommends keeping the IDE and terminal on the same JDK. Confirmed directly with a clean build (`rm -rf android/app/.cxx && ./gradlew assembleDebug`, no Gradle/CMake cache reuse): under JDK 25, `configureCMakeDebug` fails with `WARNING: A restricted method in java.lang.System has been called` — the Android Gradle Plugin's CMake integration has not been validated against JDK's newer restricted-method enforcement (JEP 472 and later). Under JDK 17, the identical clean build completes `assembleDebug` and produces a working `app-debug.apk`. Set `JAVA_HOME` before running Gradle or the React Native Android command.
+
+`android/build.gradle` now checks the running JDK before anything else and fails immediately with an actionable message naming the exact JDK it found, instead of failing 20+ seconds in with the cryptic CMake error above. If you see that message, it means `JAVA_HOME` is unset or points at the wrong JDK for the *current terminal session* — setting it in one shell does not persist to a new one.
 
 ```powershell
 $env:JAVA_HOME = "C:\path\to\jdk-17"
