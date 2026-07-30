@@ -1,11 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Alert,
-  PermissionsAndroid,
-  Platform,
   Pressable,
   ScrollView,
-  type Permission,
   StyleSheet,
   Text,
   TextInput,
@@ -13,45 +9,21 @@ import {
 } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
+import type { CrisisReport } from './src/contracts/report';
 import { getAppDatabase } from './src/db/appDatabase';
-import { startMeshRelay } from './src/mesh/relay';
+import { startMeshRelay, type MeshRelayController } from './src/mesh/relay';
+import {
+  useNearbySession,
+  type NearbySession,
+} from './src/mesh/useNearbySession';
 import { MyReportsScreen } from './src/screens/MyReportsScreen';
 import { ReportFormScreen } from './src/screens/ReportFormScreen';
-import { NearbyConnections } from './src/native/NearbyConnections';
 import { startAutoSync } from './src/sync/sync';
 import {
   defaultBackendOrigin,
   loadBackendOrigin,
   saveBackendOrigin,
 } from './src/config/backend';
-
-const endpointName = `Protidhoni-${Math.random().toString(36).slice(2, 8)}`;
-
-async function requestNearbyPermissions(): Promise<boolean> {
-  if (Platform.OS !== 'android') return false;
-
-  const permissions: Permission[] = [];
-  if (Platform.Version >= 31) {
-    permissions.push(
-      PermissionsAndroid.PERMISSIONS.BLUETOOTH_ADVERTISE,
-      PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT,
-      PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN,
-    );
-  } else if (Platform.Version >= 29) {
-    permissions.push(PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION);
-  }
-  if (
-    Platform.Version >= 33 &&
-    PermissionsAndroid.PERMISSIONS.NEARBY_WIFI_DEVICES
-  ) {
-    permissions.push(PermissionsAndroid.PERMISSIONS.NEARBY_WIFI_DEVICES);
-  }
-
-  const results = await PermissionsAndroid.requestMultiple(permissions);
-  return permissions.every(
-    permission => results[permission] === PermissionsAndroid.RESULTS.GRANTED,
-  );
-}
 
 type Tab = 'create' | 'reports' | 'mesh';
 
@@ -83,21 +55,25 @@ function TabButton({
 function MeshScreen({
   apiBaseUrl,
   onApiBaseUrlChange,
+  nearby,
 }: {
   apiBaseUrl: string;
   onApiBaseUrlChange: (value: string) => void;
+  nearby: NearbySession;
 }) {
-  const [active, setActive] = useState(false);
   const [backendDraft, setBackendDraft] = useState(apiBaseUrl);
   const [backendFeedback, setBackendFeedback] = useState('');
-  const [endpoints, setEndpoints] = useState<Record<string, string>>({});
-  const [pendingRequests, setPendingRequests] = useState<
-    Record<string, { name: string; authenticationDigits: string }>
-  >({});
-  const endpointList = useMemo(() => Object.entries(endpoints), [endpoints]);
+  const endpointList = useMemo(
+    () => Object.entries(nearby.endpoints),
+    [nearby.endpoints],
+  );
+  const connectedPeerList = useMemo(
+    () => Object.entries(nearby.connectedPeers),
+    [nearby.connectedPeers],
+  );
   const pendingRequestList = useMemo(
-    () => Object.entries(pendingRequests),
-    [pendingRequests],
+    () => Object.entries(nearby.pendingRequests),
+    [nearby.pendingRequests],
   );
 
   useEffect(() => setBackendDraft(apiBaseUrl), [apiBaseUrl]);
@@ -114,70 +90,9 @@ function MeshScreen({
     }
   };
 
-  const respond = async (endpointId: string, accept: boolean) => {
-    setPendingRequests(current => {
-      const next = { ...current };
-      delete next[endpointId];
-      return next;
-    });
-    await NearbyConnections.respondToConnection(endpointId, accept);
-  };
-
-  useEffect(() => {
-    const found = NearbyConnections.onEndpointFound(endpoint => {
-      setEndpoints(current => ({
-        ...current,
-        [endpoint.endpointId]: endpoint.name,
-      }));
-    });
-    const lost = NearbyConnections.onEndpointLost(endpoint => {
-      setEndpoints(current => {
-        const next = { ...current };
-        delete next[endpoint.endpointId];
-        return next;
-      });
-    });
-    const requested = NearbyConnections.onConnectionRequested(request => {
-      setPendingRequests(current => ({
-        ...current,
-        [request.endpointId]: {
-          name: request.name,
-          authenticationDigits: request.authenticationDigits,
-        },
-      }));
-    });
-    return () => {
-      found.remove();
-      lost.remove();
-      requested.remove();
-      // eslint-disable-next-line no-void -- cleanup effect isn't awaited
-      void NearbyConnections.stop();
-    };
-  }, []);
-
   const toggleNearby = async () => {
-    if (active) {
-      await NearbyConnections.stop();
-      setEndpoints({});
-      setActive(false);
-      return;
-    }
-    if (!(await requestNearbyPermissions())) {
-      Alert.alert(
-        'Permission needed',
-        'Nearby discovery cannot start until all requested nearby-device permissions are allowed.',
-      );
-      return;
-    }
-    try {
-      await NearbyConnections.start(endpointName);
-      setActive(true);
-    } catch (error) {
-      Alert.alert(
-        'Nearby unavailable',
-        error instanceof Error ? error.message : 'Unable to start discovery.',
-      );
-    }
+    if (nearby.active) await nearby.stop();
+    else await nearby.start();
   };
 
   return (
@@ -222,14 +137,19 @@ function MeshScreen({
             // eslint-disable-next-line no-void -- Pressable's onPress isn't awaited
             void toggleNearby();
           }}
-          style={styles.button}
+          disabled={nearby.starting}
+          style={[styles.button, nearby.starting && styles.buttonDisabled]}
         >
           <Text style={styles.buttonText}>
-            {active ? 'Stop discovery' : 'Start nearby discovery'}
+            {nearby.starting
+              ? 'Starting nearby…'
+              : nearby.active
+                ? 'Stop discovery'
+                : 'Start nearby discovery'}
           </Text>
         </Pressable>
-        <Text style={styles.status}>
-          {active ? `Advertising as ${endpointName}` : 'Discovery stopped'}
+        <Text style={styles.status} testID="nearby-session-detail">
+          {nearby.statusMessage}
         </Text>
         {pendingRequestList.length > 0 && (
           <View style={styles.requestSection}>
@@ -250,7 +170,7 @@ function MeshScreen({
                     testID={`accept-${endpointId}`}
                     onPress={() => {
                       // eslint-disable-next-line no-void -- Pressable's onPress isn't awaited
-                      void respond(endpointId, true);
+                      void nearby.respond(endpointId, true);
                     }}
                     style={[styles.requestButton, styles.acceptButton]}
                   >
@@ -261,7 +181,7 @@ function MeshScreen({
                     testID={`decline-${endpointId}`}
                     onPress={() => {
                       // eslint-disable-next-line no-void -- Pressable's onPress isn't awaited
-                      void respond(endpointId, false);
+                      void nearby.respond(endpointId, false);
                     }}
                     style={[styles.requestButton, styles.declineButton]}
                   >
@@ -271,6 +191,18 @@ function MeshScreen({
               </View>
             ))}
           </View>
+        )}
+        <Text style={styles.heading} testID="connected-peer-count">
+          Connected peers ({connectedPeerList.length})
+        </Text>
+        {connectedPeerList.length === 0 ? (
+          <Text style={styles.status}>No active peer connections.</Text>
+        ) : (
+          connectedPeerList.map(([id, name]) => (
+            <Text key={id} style={styles.connectedPeer}>
+              ● {name}
+            </Text>
+          ))
         )}
         <Text style={styles.heading}>
           Devices in range ({endpointList.length})
@@ -288,23 +220,39 @@ function MeshScreen({
 function App() {
   const [tab, setTab] = useState<Tab>('create');
   const [apiBaseUrl, setApiBaseUrl] = useState(defaultBackendOrigin);
+  const [reportsRevision, setReportsRevision] = useState(0);
+  const nearby = useNearbySession();
+  const relayRef = useRef<MeshRelayController | null>(null);
+  const relayReadyRef = useRef<Promise<MeshRelayController | null> | null>(null);
 
   useEffect(() => {
-    let stopRelay: (() => void) | undefined;
     let cancelled = false;
 
-    // eslint-disable-next-line no-void -- effect callbacks can't be async
-    void (async () => {
-      const db = await getAppDatabase();
-      if (cancelled) return;
-      stopRelay = startMeshRelay(db);
-    })();
+    const ready = getAppDatabase().then(db => {
+      if (cancelled) return null;
+      const relay = startMeshRelay(db, () => {
+        setReportsRevision(current => current + 1);
+      });
+      relayRef.current = relay;
+      return relay;
+    });
+    relayReadyRef.current = ready;
 
     return () => {
       cancelled = true;
-      stopRelay?.();
+      relayRef.current?.stop();
+      relayRef.current = null;
+      relayReadyRef.current = null;
     };
   }, []);
+
+  const relayNewReport = useCallback(
+    async (report: CrisisReport): Promise<number> => {
+      const relay = relayRef.current ?? (await relayReadyRef.current);
+      return relay?.relayReport(report) ?? 0;
+    },
+    [],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -340,11 +288,13 @@ function App() {
             label="Create"
             active={tab === 'create'}
             onPress={() => setTab('create')}
+            testID="tab-create"
           />
           <TabButton
             label="My reports"
             active={tab === 'reports'}
             onPress={() => setTab('reports')}
+            testID="tab-reports"
           />
           <TabButton
             label="Nearby"
@@ -353,14 +303,39 @@ function App() {
             testID="tab-mesh"
           />
         </View>
-        {tab === 'create' && <ReportFormScreen />}
-        {tab === 'reports' && <MyReportsScreen />}
+        <View
+          style={[
+            styles.connectionBanner,
+            nearby.active
+              ? connectedCount(nearby) > 0
+                ? styles.connectionBannerConnected
+                : styles.connectionBannerSearching
+              : styles.connectionBannerOff,
+          ]}
+          testID="global-connection-status"
+        >
+          <Text style={styles.connectionBannerText}>
+            {nearby.active
+              ? `Nearby active • ${connectedCount(nearby)} connected`
+              : 'Nearby is off'}
+          </Text>
+        </View>
+        {tab === 'create' && <ReportFormScreen onReportQueued={relayNewReport} />}
+        {tab === 'reports' && <MyReportsScreen refreshToken={reportsRevision} />}
         {tab === 'mesh' && (
-          <MeshScreen apiBaseUrl={apiBaseUrl} onApiBaseUrlChange={setApiBaseUrl} />
+          <MeshScreen
+            apiBaseUrl={apiBaseUrl}
+            nearby={nearby}
+            onApiBaseUrlChange={setApiBaseUrl}
+          />
         )}
       </SafeAreaView>
     </SafeAreaProvider>
   );
+}
+
+function connectedCount(nearby: NearbySession): number {
+  return Object.keys(nearby.connectedPeers).length;
 }
 
 const styles = StyleSheet.create({
@@ -376,6 +351,17 @@ const styles = StyleSheet.create({
   tabButtonActive: { backgroundColor: '#c2410c' },
   tabLabel: { color: '#93a5b8', fontWeight: '600' },
   tabLabelActive: { color: '#ffffff', fontWeight: '700' },
+  connectionBanner: {
+    marginHorizontal: 12,
+    marginBottom: 4,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+  },
+  connectionBannerOff: { backgroundColor: '#334155' },
+  connectionBannerSearching: { backgroundColor: '#92400e' },
+  connectionBannerConnected: { backgroundColor: '#047857' },
+  connectionBannerText: { color: '#ffffff', fontWeight: '700', textAlign: 'center' },
   meshPage: { flexGrow: 1, justifyContent: 'center', padding: 24 },
   card: { backgroundColor: '#ffffff', borderRadius: 16, padding: 24, gap: 14 },
   title: { fontSize: 32, fontWeight: '700', color: '#071a2c' },
@@ -388,6 +374,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   buttonText: { color: '#ffffff', fontSize: 16, fontWeight: '700' },
+  buttonDisabled: { opacity: 0.6 },
   secondaryButton: {
     backgroundColor: '#334155',
     borderRadius: 10,
@@ -405,6 +392,7 @@ const styles = StyleSheet.create({
   status: { color: '#374151' },
   heading: { fontSize: 16, fontWeight: '700', marginTop: 8 },
   endpoint: { color: '#0f766e' },
+  connectedPeer: { color: '#047857', fontWeight: '700' },
   requestSection: { gap: 10, marginTop: 4 },
   requestRow: {
     backgroundColor: '#fff7ed',

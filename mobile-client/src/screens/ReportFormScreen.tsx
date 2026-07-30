@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 
 import {createSignedReport} from '../crypto/sign';
+import type {CrisisReport} from '../contracts/report';
 import {getAppDatabase} from '../db/appDatabase';
 import {enqueueReport} from '../db/queue';
 import {
@@ -28,7 +29,11 @@ async function requestLocationPermission(): Promise<boolean> {
   return granted === PermissionsAndroid.RESULTS.GRANTED;
 }
 
-export function ReportFormScreen() {
+export function ReportFormScreen({
+  onReportQueued,
+}: {
+  onReportQueued?: (report: CrisisReport) => Promise<number>;
+} = {}) {
   const [reportType, setReportType] = useState<CreatableReportType>('SOS');
   const [language, setLanguage] = useState<'bn' | 'en'>('bn');
   const [text, setText] = useState('');
@@ -112,7 +117,12 @@ export function ReportFormScreen() {
         throw new Error('The generated report identifier already exists in the local queue.');
       }
 
-      setLastSavedId(report.message_id);
+      const relayedPeerCount = await onReportQueued?.(report) ?? 0;
+      setLastSavedId(
+        relayedPeerCount > 0
+          ? `${report.message_id} • relayed to ${relayedPeerCount} peer${relayedPeerCount === 1 ? '' : 's'}`
+          : `${report.message_id} • waiting for a peer`,
+      );
       setText('');
       setPeopleCount('');
       setNeeds(new Set());
@@ -120,8 +130,10 @@ export function ReportFormScreen() {
       setManualLat('');
       setManualLng('');
       Alert.alert(
-        'Report saved offline',
-        `${config.label} is queued on this phone and will relay or sync when connectivity is available.`,
+        relayedPeerCount > 0 ? 'Report saved and relayed' : 'Report saved offline',
+        relayedPeerCount > 0
+          ? `${config.label} is safely stored on this phone and was relayed to ${relayedPeerCount} connected peer${relayedPeerCount === 1 ? '' : 's'}.`
+          : `${config.label} is queued on this phone and will relay automatically when a peer connects.`,
       );
     } catch (error) {
       Alert.alert('Could not save report', error instanceof Error ? error.message : 'Unknown error.');
@@ -290,7 +302,7 @@ export function ReportFormScreen() {
         testID="report-submit-button">
         <Text style={styles.submitButtonText}>{submitting ? 'Saving…' : `Save ${config.shortLabel}`}</Text>
       </Pressable>
-      {lastSavedId && <Text style={styles.confirmation}>Queued locally: {lastSavedId}</Text>}
+      {lastSavedId && <Text style={styles.confirmation}>Saved locally: {lastSavedId}</Text>}
     </ScrollView>
   );
 }

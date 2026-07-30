@@ -16,7 +16,7 @@ import { createNodeSqliteExecutor } from "../../db/testSupport/nodeSqliteExecuto
 // relay.ts's listeners return their handler's promise (see the comment in
 // relay.ts), so tests can `await` a triggered event directly instead of
 // guessing how many microtask ticks a fire-and-forget chain needs.
-type Listener<T> = (payload: T) => Promise<void>;
+type Listener<T> = (payload: T) => Promise<unknown> | void;
 
 // The factory must be fully self-contained: Babel hoists `import` statements
 // (including the module-under-test import below) above ordinary `const`
@@ -27,6 +27,7 @@ type Listener<T> = (payload: T) => Promise<void>;
 // hoisting hazard rather than fighting it.
 jest.mock("../../native/NearbyConnections", () => {
   const connected: unknown[] = [];
+  const disconnected: unknown[] = [];
   const payloadReceived: unknown[] = [];
   return {
     NearbyConnections: {
@@ -38,8 +39,12 @@ jest.mock("../../native/NearbyConnections", () => {
         payloadReceived.push(listener);
         return { remove: jest.fn() };
       },
+      onDisconnected: (listener: unknown) => {
+        disconnected.push(listener);
+        return { remove: jest.fn() };
+      },
       sendPayload: jest.fn(async (_endpointId: string, _dataBase64: string) => undefined),
-      __mockListeners: { connected, payloadReceived },
+      __mockListeners: { connected, disconnected, payloadReceived },
     },
   };
 });
@@ -54,6 +59,7 @@ import { startMeshRelay } from "../relay";
 type MockedNearbyConnections = typeof NearbyConnections & {
   __mockListeners: {
     connected: Listener<{ endpointId: string }>[];
+    disconnected: Listener<{ endpointId: string }>[];
     payloadReceived: Listener<{ endpointId: string; dataBase64: string }>[];
   };
 };
@@ -89,6 +95,7 @@ describe("startMeshRelay", () => {
     // Truncate in place (not reassign) — the mock's onConnected/
     // onPayloadReceived closures push into these exact array instances.
     mockListeners.connected.length = 0;
+    mockListeners.disconnected.length = 0;
     mockListeners.payloadReceived.length = 0;
     mockSendPayload.mockClear();
     _resetDeviceIdentityCacheForTests();
@@ -168,6 +175,25 @@ describe("startMeshRelay", () => {
     expect(all.filter((r) => r.message_id === "33333333-3333-4333-8333-333333333333")).toHaveLength(1);
   });
 
+  it("forwards a newly received report to other connected peers without echoing it", async () => {
+    const db = createNodeSqliteExecutor();
+    await initReportQueueSchema(db);
+    startMeshRelay(db);
+    await mockListeners.connected[0]({ endpointId: "source-peer" });
+    await mockListeners.connected[0]({ endpointId: "next-peer" });
+
+    const incoming = makeReport({ message_id: "44444444-4444-4444-8444-444444444444" });
+    await mockListeners.payloadReceived[0]({
+      endpointId: "source-peer",
+      dataBase64: base64Encode(utf8Encode(JSON.stringify(incoming))),
+    });
+
+    expect(mockSendPayload).toHaveBeenCalledTimes(1);
+    expect(mockSendPayload).toHaveBeenCalledWith("next-peer", expect.any(String));
+    const [stored] = await listAllReports(db);
+    expect(stored.sync_status).toBe("relayed");
+  });
+
   it("silently ignores a malformed/non-report payload instead of crashing", async () => {
     const db = createNodeSqliteExecutor();
     await initReportQueueSchema(db);
@@ -187,13 +213,44 @@ describe("startMeshRelay", () => {
 
     await enqueueReport(db, makeReport());
 
-    const stop = startMeshRelay(db);
-    stop();
+    const relay = startMeshRelay(db);
+    relay.stop();
 
     // mockListeners array still holds the captured callback (our mock doesn't
     // actually remove it), but relay.ts's own returned unsubscribe function
     // must have called .remove() on both subscriptions.
     expect(mockListeners.connected).toHaveLength(1);
+  });
+
+  it("relays a report created after the peer is already connected", async () => {
+    const db = createNodeSqliteExecutor();
+    await initReportQueueSchema(db);
+    const relay = startMeshRelay(db);
+    await mockListeners.connected[0]({ endpointId: "peer-1" });
+
+    const report = makeReport();
+    await enqueueReport(db, report);
+    const peerCount = await relay.relayReport(report);
+
+    expect(peerCount).toBe(1);
+    expect(mockSendPayload).toHaveBeenCalledTimes(1);
+    expect(mockSendPayload).toHaveBeenCalledWith("peer-1", expect.any(String));
+    const [stored] = await listAllReports(db);
+    expect(stored.sync_status).toBe("relayed");
+  });
+
+  it("does not send newly queued reports to a disconnected peer", async () => {
+    const db = createNodeSqliteExecutor();
+    await initReportQueueSchema(db);
+    const relay = startMeshRelay(db);
+    await mockListeners.connected[0]({ endpointId: "peer-1" });
+    mockListeners.disconnected[0]({ endpointId: "peer-1" });
+
+    const report = makeReport();
+    await enqueueReport(db, report);
+
+    await expect(relay.relayReport(report)).resolves.toBe(0);
+    expect(mockSendPayload).not.toHaveBeenCalled();
   });
 
   it("does not re-forward a report that is already synced", async () => {

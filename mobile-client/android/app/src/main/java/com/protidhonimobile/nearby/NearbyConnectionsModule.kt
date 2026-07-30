@@ -1,5 +1,7 @@
 package com.protidhonimobile.nearby
 
+import android.os.Handler
+import android.os.Looper
 import android.util.Base64
 import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.Promise
@@ -7,6 +9,7 @@ import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
 import com.facebook.react.modules.core.DeviceEventManagerModule
+import com.google.android.gms.common.api.ApiException
 import com.google.android.gms.nearby.Nearby
 import com.google.android.gms.nearby.connection.AdvertisingOptions
 import com.google.android.gms.nearby.connection.ConnectionInfo
@@ -41,9 +44,18 @@ import com.google.android.gms.nearby.connection.Strategy
 class NearbyConnectionsModule(
     private val reactContext: ReactApplicationContext,
 ) : ReactContextBaseJavaModule(reactContext) {
+    private data class PendingPayload(
+        val endpointId: String,
+        val promise: Promise,
+        val timeout: Runnable,
+    )
+
     private val client: ConnectionsClient = Nearby.getConnectionsClient(reactContext)
+    private val mainHandler = Handler(Looper.getMainLooper())
     private val serviceId = "org.protidhoni.crisismesh.v1"
     private var localEndpointName: String? = null
+    private val pendingEndpointIds = mutableSetOf<String>()
+    private val pendingPayloads = mutableMapOf<Long, PendingPayload>()
 
     override fun getName(): String = "NearbyConnections"
 
@@ -60,11 +72,32 @@ class NearbyConnectionsModule(
             )
         }
 
-        override fun onPayloadTransferUpdate(endpointId: String, update: PayloadTransferUpdate) = Unit
+        override fun onPayloadTransferUpdate(endpointId: String, update: PayloadTransferUpdate) {
+            val pending = pendingPayloads[update.payloadId] ?: return
+            if (pending.endpointId != endpointId) return
+            when (update.status) {
+                PayloadTransferUpdate.Status.SUCCESS -> {
+                    removePendingPayload(update.payloadId)?.promise?.resolve(null)
+                }
+                PayloadTransferUpdate.Status.FAILURE -> {
+                    removePendingPayload(update.payloadId)?.promise?.reject(
+                        "SEND_FAILED",
+                        "Nearby payload transfer failed.",
+                    )
+                }
+                PayloadTransferUpdate.Status.CANCELED -> {
+                    removePendingPayload(update.payloadId)?.promise?.reject(
+                        "SEND_CANCELED",
+                        "Nearby payload transfer was canceled.",
+                    )
+                }
+            }
+        }
     }
 
     private val lifecycleCallback = object : ConnectionLifecycleCallback() {
         override fun onConnectionInitiated(endpointId: String, connectionInfo: ConnectionInfo) {
+            pendingEndpointIds.add(endpointId)
             emit(
                 "connectionRequested",
                 mapOf(
@@ -76,6 +109,7 @@ class NearbyConnectionsModule(
         }
 
         override fun onConnectionResult(endpointId: String, result: ConnectionResolution) {
+            pendingEndpointIds.remove(endpointId)
             if (result.status.isSuccess) {
                 emit("connected", mapOf("endpointId" to endpointId))
             } else {
@@ -87,6 +121,8 @@ class NearbyConnectionsModule(
         }
 
         override fun onDisconnected(endpointId: String) {
+            pendingEndpointIds.remove(endpointId)
+            rejectPendingPayloads(endpointId, "Peer disconnected before payload transfer completed.")
             emit("disconnected", mapOf("endpointId" to endpointId))
         }
     }
@@ -95,7 +131,20 @@ class NearbyConnectionsModule(
         override fun onEndpointFound(endpointId: String, info: DiscoveredEndpointInfo) {
             emit("endpointFound", mapOf("endpointId" to endpointId, "name" to info.endpointName))
             val requestingName = localEndpointName ?: return
+            // Both phones advertise and discover. Pick one deterministic
+            // initiator so simultaneous requestConnection calls do not race.
+            if (requestingName > info.endpointName || !pendingEndpointIds.add(endpointId)) return
             client.requestConnection(requestingName, endpointId, lifecycleCallback)
+                .addOnFailureListener { error ->
+                    pendingEndpointIds.remove(endpointId)
+                    emit(
+                        "connectionFailed",
+                        mapOf(
+                            "endpointId" to endpointId,
+                            "statusCode" to ((error as? ApiException)?.statusCode ?: -1),
+                        ),
+                    )
+                }
         }
 
         override fun onEndpointLost(endpointId: String) {
@@ -109,6 +158,7 @@ class NearbyConnectionsModule(
             promise.reject("INVALID_ENDPOINT_NAME", "Endpoint name must contain 1 to 64 characters.")
             return
         }
+        pendingEndpointIds.clear()
         localEndpointName = endpointName
 
         val strategy = Strategy.P2P_CLUSTER
@@ -116,7 +166,11 @@ class NearbyConnectionsModule(
             .addOnFailureListener { error -> promise.reject("ADVERTISEMENT_FAILED", error) }
             .addOnSuccessListener {
                 client.startDiscovery(serviceId, discoveryCallback, DiscoveryOptions(strategy))
-                    .addOnFailureListener { error -> promise.reject("DISCOVERY_FAILED", error) }
+                    .addOnFailureListener { error ->
+                        client.stopAdvertising()
+                        localEndpointName = null
+                        promise.reject("DISCOVERY_FAILED", error)
+                    }
                     .addOnSuccessListener { promise.resolve(null) }
             }
     }
@@ -126,6 +180,8 @@ class NearbyConnectionsModule(
         client.stopAdvertising()
         client.stopDiscovery()
         client.stopAllEndpoints()
+        pendingEndpointIds.clear()
+        rejectAllPendingPayloads("Nearby discovery stopped before payload transfer completed.")
         localEndpointName = null
         promise.resolve(null)
     }
@@ -150,10 +206,20 @@ class NearbyConnectionsModule(
             } catch (error: IllegalArgumentException) {
                 promise.reject("INVALID_PAYLOAD", error)
                 return
+        }
+        val payload = Payload.fromBytes(bytes)
+        val timeout = Runnable {
+            pendingPayloads.remove(payload.id)?.promise?.reject(
+                "SEND_TIMEOUT",
+                "Nearby payload transfer timed out and will be retried later.",
+            )
+        }
+        pendingPayloads[payload.id] = PendingPayload(endpointId, promise, timeout)
+        mainHandler.postDelayed(timeout, 30_000)
+        client.sendPayload(endpointId, payload)
+            .addOnFailureListener { error ->
+                removePendingPayload(payload.id)?.promise?.reject("SEND_FAILED", error)
             }
-        client.sendPayload(endpointId, Payload.fromBytes(bytes))
-            .addOnFailureListener { error -> promise.reject("SEND_FAILED", error) }
-            .addOnSuccessListener { promise.resolve(null) }
     }
 
     @ReactMethod
@@ -161,6 +227,31 @@ class NearbyConnectionsModule(
 
     @ReactMethod
     fun removeListeners(count: Double) = Unit
+
+    private fun removePendingPayload(payloadId: Long): PendingPayload? {
+        val pending = pendingPayloads.remove(payloadId) ?: return null
+        mainHandler.removeCallbacks(pending.timeout)
+        return pending
+    }
+
+    private fun rejectPendingPayloads(endpointId: String, message: String) {
+        val payloadIds = pendingPayloads
+            .filterValues { it.endpointId == endpointId }
+            .keys
+            .toList()
+        payloadIds.forEach { payloadId ->
+            removePendingPayload(payloadId)?.promise?.reject("SEND_FAILED", message)
+        }
+    }
+
+    private fun rejectAllPendingPayloads(message: String) {
+        val pending = pendingPayloads.values.toList()
+        pendingPayloads.clear()
+        pending.forEach {
+            mainHandler.removeCallbacks(it.timeout)
+            it.promise.reject("SEND_FAILED", message)
+        }
+    }
 
     private fun emit(eventName: String, values: Map<String, Any>) {
         val payload = Arguments.createMap()

@@ -110,3 +110,50 @@ test('shows report type, timestamp, sync state, and rejection feedback', async (
     await act(async () => renderer!.unmount());
   }
 });
+
+test('reloads an already-open report list when its refresh token changes', async () => {
+  let renderer: ReactTestRenderer | undefined;
+  await act(async () => {
+    renderer = create(<MyReportsScreen refreshToken={0} />);
+    await Promise.resolve();
+  });
+
+  mockRows.push({
+    report_json: JSON.stringify({
+      schema_version: '1.0.0',
+      message_id: '22222222-2222-4222-8222-222222222222',
+      type: 'SOS',
+      sender_pubkey: 'A'.repeat(43),
+      sender_pubkey_hash: 'B'.repeat(43),
+      created_at: '2026-07-30T04:00:00.000Z',
+      language: 'en',
+      location: {lat: null, lng: null, accuracy_m: null, source: 'none'},
+      payload: {text: 'Incoming mesh report', people_count: null, needs: [], attachment_ref: null},
+      priority: null,
+      ttl_hops: 7,
+      signature: {algorithm: 'Ed25519', value: 'C'.repeat(86)},
+      relay_path: ['D'.repeat(43)],
+      sync_status: 'relayed',
+      verification: {status: 'unverified', corroboration_count: 0},
+    }),
+    sync_status: 'relayed',
+    queued_at: '2026-07-30T04:00:01.000Z',
+    delivery_outcome: null,
+    delivery_feedback: null,
+    last_sync_attempt_at: null,
+  });
+
+  try {
+    await act(async () => {
+      renderer!.update(<MyReportsScreen refreshToken={1} />);
+      await Promise.resolve();
+    });
+    expect(
+      renderer!.root.findByProps({
+        testID: 'report-card-22222222-2222-4222-8222-222222222222',
+      }),
+    ).toBeDefined();
+  } finally {
+    await act(async () => renderer!.unmount());
+  }
+});

@@ -1,12 +1,13 @@
 import { NativeEventEmitter, NativeModules } from 'react-native';
 
-type Endpoint = { endpointId: string; name: string };
+export type Endpoint = { endpointId: string; name: string };
 type PayloadReceived = { endpointId: string; dataBase64: string };
-type ConnectionRequest = {
+export type ConnectionRequest = {
   endpointId: string;
   name: string;
   authenticationDigits: string;
 };
+export type ConnectionFailure = { endpointId: string; statusCode: number };
 
 type NearbyNativeModule = {
   start(endpointName: string): Promise<void>;
@@ -44,6 +45,8 @@ export const NearbyConnections = {
   onDisconnected: (
     listener: (endpoint: Pick<Endpoint, 'endpointId'>) => void,
   ) => events.addListener('disconnected', listener),
+  onConnectionFailed: (listener: (failure: ConnectionFailure) => void) =>
+    events.addListener('connectionFailed', listener),
   onPayloadReceived: (listener: (payload: PayloadReceived) => void) =>
     events.addListener('payloadReceived', listener),
   onConnectionRequested: (listener: (request: ConnectionRequest) => void) =>

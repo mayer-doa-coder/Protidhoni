@@ -6,6 +6,11 @@ import { Text } from 'react-native';
 // hazard): captures the connectionRequested listener so tests can trigger it
 // directly, the same way relay.test.ts captures onConnected/onPayloadReceived.
 jest.mock('../src/native/NearbyConnections', () => {
+  const endpointFound: unknown[] = [];
+  const endpointLost: unknown[] = [];
+  const connected: unknown[] = [];
+  const disconnected: unknown[] = [];
+  const connectionFailed: unknown[] = [];
   const connectionRequested: Array<
     (request: {
       endpointId: string;
@@ -15,13 +20,29 @@ jest.mock('../src/native/NearbyConnections', () => {
   > = [];
   return {
     NearbyConnections: {
-      start: jest.fn(),
-      stop: jest.fn(),
+      start: jest.fn(async () => undefined),
+      stop: jest.fn(async () => undefined),
       sendPayload: jest.fn(),
-      onEndpointFound: jest.fn(() => ({ remove: jest.fn() })),
-      onEndpointLost: jest.fn(() => ({ remove: jest.fn() })),
-      onConnected: jest.fn(() => ({ remove: jest.fn() })),
-      onDisconnected: jest.fn(() => ({ remove: jest.fn() })),
+      onEndpointFound: (listener: unknown) => {
+        endpointFound.push(listener);
+        return { remove: jest.fn() };
+      },
+      onEndpointLost: (listener: unknown) => {
+        endpointLost.push(listener);
+        return { remove: jest.fn() };
+      },
+      onConnected: (listener: unknown) => {
+        connected.push(listener);
+        return { remove: jest.fn() };
+      },
+      onDisconnected: (listener: unknown) => {
+        disconnected.push(listener);
+        return { remove: jest.fn() };
+      },
+      onConnectionFailed: (listener: unknown) => {
+        connectionFailed.push(listener);
+        return { remove: jest.fn() };
+      },
       onPayloadReceived: jest.fn(() => ({ remove: jest.fn() })),
       onConnectionRequested: (
         listener: (request: {
@@ -34,7 +55,14 @@ jest.mock('../src/native/NearbyConnections', () => {
         return { remove: jest.fn() };
       },
       respondToConnection: jest.fn(async () => undefined),
-      __mockListeners: { connectionRequested },
+      __mockListeners: {
+        endpointFound,
+        endpointLost,
+        connected,
+        disconnected,
+        connectionFailed,
+        connectionRequested,
+      },
     },
   };
 });
@@ -74,6 +102,13 @@ import { NearbyConnections } from '../src/native/NearbyConnections';
 
 type MockedNearbyConnections = typeof NearbyConnections & {
   __mockListeners: {
+    endpointFound: Array<(endpoint: { endpointId: string; name: string }) => void>;
+    endpointLost: Array<(endpoint: { endpointId: string }) => void>;
+    connected: Array<(endpoint: { endpointId: string }) => void>;
+    disconnected: Array<(endpoint: { endpointId: string }) => void>;
+    connectionFailed: Array<
+      (failure: { endpointId: string; statusCode: number }) => void
+    >;
     connectionRequested: Array<
       (request: {
         endpointId: string;
@@ -90,10 +125,15 @@ const mockRespondToConnection =
   NearbyConnections.respondToConnection as jest.MockedFunction<
     typeof NearbyConnections.respondToConnection
   >;
+const mockStop = NearbyConnections.stop as jest.MockedFunction<
+  typeof NearbyConnections.stop
+>;
 
 beforeEach(() => {
-  mockListeners.connectionRequested.length = 0;
-  mockRespondToConnection.mockClear();
+  for (const listeners of Object.values(mockListeners)) listeners.length = 0;
+  mockRespondToConnection.mockReset();
+  mockRespondToConnection.mockResolvedValue(undefined);
+  mockStop.mockClear();
 });
 
 test('renders the app (Create tab by default) without crashing', async () => {
@@ -171,4 +211,38 @@ test('lets the user decline an incoming Nearby connection request', async () => 
   expect(
     renderer!.root.findAllByProps({ testID: 'decline-peer-2' }),
   ).toHaveLength(0);
+});
+
+test('keeps the Nearby session connected while navigating between tabs', async () => {
+  let renderer: ReactTestRenderer | undefined;
+  await act(async () => {
+    renderer = create(<App />);
+  });
+
+  await act(async () => {
+    mockListeners.endpointFound[0]({
+      endpointId: 'peer-persistent',
+      name: 'Protidhoni-peer',
+    });
+    mockListeners.connected[0]({ endpointId: 'peer-persistent' });
+  });
+  expect(
+    renderer!.root.findByProps({ testID: 'global-connection-status' }).props
+      .children.props.children,
+  ).toContain('1 connected');
+
+  await act(async () => {
+    renderer!.root.findByProps({ testID: 'tab-mesh' }).props.onPress();
+  });
+  expect(
+    renderer!.root.findByProps({ testID: 'connected-peer-count' }).props.children,
+  ).toEqual(['Connected peers (', 1, ')']);
+
+  await act(async () => {
+    renderer!.root.findByProps({ testID: 'tab-reports' }).props.onPress();
+  });
+  expect(mockStop).not.toHaveBeenCalled();
+
+  await act(async () => renderer!.unmount());
+  expect(mockStop).toHaveBeenCalledTimes(1);
 });

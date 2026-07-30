@@ -39,7 +39,7 @@ export function getDeliveryPresentation(record: QueuedReportRecord): DeliveryPre
 /** Roadmap §5.3: "a local 'my reports' view showing sync status (local /
  * relayed / synced) so a user isn't left wondering if their SOS actually
  * went anywhere." */
-export function MyReportsScreen() {
+export function MyReportsScreen({refreshToken = 0}: {refreshToken?: number} = {}) {
   const [records, setRecords] = useState<QueuedReportRecord[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -57,7 +57,7 @@ export function MyReportsScreen() {
   useEffect(() => {
     // eslint-disable-next-line no-void -- effect callbacks can't be async
     void reload();
-  }, [reload]);
+  }, [refreshToken, reload]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
