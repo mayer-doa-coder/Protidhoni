@@ -41,7 +41,7 @@ async function requestNearbyPermissions(): Promise<boolean> {
     permissions.push(PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION);
   }
   if (
-    Platform.Version >= 32 &&
+    Platform.Version >= 33 &&
     PermissionsAndroid.PERMISSIONS.NEARBY_WIFI_DEVICES
   ) {
     permissions.push(PermissionsAndroid.PERMISSIONS.NEARBY_WIFI_DEVICES);

@@ -2,15 +2,17 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- Nearby Connections: keep platform ranges aligned with Google's current guidance. -->
-    <uses-permission android:maxSdkVersion="31" android:name="android.permission.ACCESS_WIFI_STATE" />
-    <uses-permission android:maxSdkVersion="31" android:name="android.permission.CHANGE_WIFI_STATE" />
+    <!-- Google Play services still validates these normal permissions on
+         Android 12L+ even though some Nearby documentation caps them at 31. -->
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
     <uses-permission android:maxSdkVersion="30" android:name="android.permission.BLUETOOTH" />
     <uses-permission android:maxSdkVersion="30" android:name="android.permission.BLUETOOTH_ADMIN" />
     <uses-permission android:maxSdkVersion="28" android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:minSdkVersion="31" android:name="android.permission.BLUETOOTH_ADVERTISE" />
     <uses-permission android:minSdkVersion="31" android:name="android.permission.BLUETOOTH_CONNECT" />
     <uses-permission android:minSdkVersion="31" android:name="android.permission.BLUETOOTH_SCAN" />
-    <uses-permission android:minSdkVersion="32" android:name="android.permission.NEARBY_WIFI_DEVICES" />
+    <uses-permission android:minSdkVersion="33" android:name="android.permission.NEARBY_WIFI_DEVICES" />
     <uses-permission android:minSdkVersion="37" android:name="android.permission.ACCESS_LOCAL_NETWORK" />
     <!-- Report forms can attach real GPS location on every supported Android
          version. This uncapped declaration also satisfies Nearby Connections
