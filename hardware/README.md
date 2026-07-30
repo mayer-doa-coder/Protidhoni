@@ -19,9 +19,10 @@ daemon image `meshtastic/meshtasticd:2.7.26` by immutable image-index digest.
 The complete machine-readable pins are in `simulation/versions.json`.
 
 The reviewed Meshtasticator source uses TCP ports **4404, 4405, and 4406** for
-nodes 0, 1, and 2. Earlier upstream prose and the current sender/gateway default
-examples say 4403; always pass the explicit ports below until those two branch
-defaults are corrected.
+nodes 0, 1, and 2. The integrated sender defaults to node 0 on `4404`, and the
+gateway defaults to node 2 on `4406`. The commands below keep those ports
+explicit so an older locally installed package cannot silently select an
+obsolete port.
 
 ## One-command simulator setup
 
