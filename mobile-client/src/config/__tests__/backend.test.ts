@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import {
+  BackendOriginError,
   inferDevelopmentBackendOrigin,
   loadBackendOrigin,
   normalizeBackendOrigin,
@@ -30,6 +31,29 @@ test.each([
   'http://example.test:8000?token=secret',
 ])('rejects an unsafe or non-origin backend URL: %s', value => {
   expect(() => normalizeBackendOrigin(value)).toThrow();
+});
+
+// A BackendOriginError carries a reasonKey (not final English text) so the
+// UI can translate it into the app's current language -- see App.tsx's
+// MeshScreen, the only place this error is caught and shown to a user.
+test('throws a translatable reasonKey, not raw English text, for unparsable input', () => {
+  try {
+    normalizeBackendOrigin('not a url at all');
+    throw new Error('expected normalizeBackendOrigin to throw');
+  } catch (error) {
+    expect(error).toBeInstanceOf(BackendOriginError);
+    expect((error as BackendOriginError).reasonKey).toBe('invalidUrl');
+  }
+});
+
+test('throws a translatable reasonKey for a syntactically valid but disallowed origin', () => {
+  try {
+    normalizeBackendOrigin('http://example.test:8000/reports');
+    throw new Error('expected normalizeBackendOrigin to throw');
+  } catch (error) {
+    expect(error).toBeInstanceOf(BackendOriginError);
+    expect((error as BackendOriginError).reasonKey).toBe('invalidOrigin');
+  }
 });
 
 test('persists a normalized backend origin', async () => {

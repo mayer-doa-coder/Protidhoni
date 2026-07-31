@@ -17,6 +17,18 @@ class Settings(BaseSettings):
     translation_api_key: SecretStr | None = None
 
     @model_validator(mode="after")
+    def _blank_fine_tuned_path_disables_it(self) -> "Settings":
+        # An unset env var and an explicitly blank one (e.g. Docker Compose's
+        # `${VAR:-}` default) must behave identically: rules classifier stays
+        # active. Without this, Path("") resolves to the working directory,
+        # which is a real directory and would fail confusingly at model load.
+        if self.fine_tuned_model_path is not None and str(
+            self.fine_tuned_model_path
+        ).strip() in ("", "."):
+            object.__setattr__(self, "fine_tuned_model_path", None)
+        return self
+
+    @model_validator(mode="after")
     def _validate_translation_origin(self) -> "Settings":
         if self.translation_base_url is None or not self.translation_base_url.strip():
             object.__setattr__(self, "translation_base_url", None)

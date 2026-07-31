@@ -3,13 +3,22 @@ import { NativeModules, Platform } from 'react-native';
 
 const STORAGE_KEY = 'protidhoni.backend-origin.v1';
 
+/** Carries a translation key, not final English text, so every caller can
+ * render this in the user's current app language instead of always English
+ * (see App.tsx's MeshScreen, which is the only UI-facing catch site). */
+export class BackendOriginError extends Error {
+  constructor(public readonly reasonKey: 'invalidUrl' | 'invalidOrigin') {
+    super(reasonKey);
+  }
+}
+
 export function normalizeBackendOrigin(value: string): string {
   const candidate = value.trim().replace(/\/$/, '');
   let parsed: URL;
   try {
     parsed = new URL(candidate);
   } catch {
-    throw new Error('Enter a complete backend URL, for example http://192.168.1.20:8000.');
+    throw new BackendOriginError('invalidUrl');
   }
   if (
     !['http:', 'https:'].includes(parsed.protocol) ||
@@ -20,7 +29,7 @@ export function normalizeBackendOrigin(value: string): string {
     parsed.search ||
     parsed.hash
   ) {
-    throw new Error('The backend URL must be an HTTP(S) origin without a path or credentials.');
+    throw new BackendOriginError('invalidOrigin');
   }
   return candidate;
 }

@@ -97,6 +97,15 @@ android {
     compileSdk rootProject.ext.compileSdkVersion
 
     namespace "com.protidhonimobile"
+
+    // The bundled offline LLM checkpoint (assets/models/*.gguf) and map tiles
+    // (assets/maps/*.mbtiles) must stay byte-identical in the APK: llama.rn
+    // mmaps the GGUF file and MapLibre reads the mbtiles as a SQLite file
+    // directly, neither tolerates AAPT's default asset compression.
+    androidResources {
+        noCompress += ["gguf", "mbtiles"]
+    }
+
     defaultConfig {
         applicationId "com.protidhonimobile"
         minSdkVersion rootProject.ext.minSdkVersion

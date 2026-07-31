@@ -1,16 +1,13 @@
 import {useCallback, useEffect, useState} from 'react';
-import {FlatList, RefreshControl, StyleSheet, Text, View} from 'react-native';
+import {FlatList, RefreshControl, StyleSheet, View} from 'react-native';
 
 import type {CrisisReport} from '../contracts/report';
 import {getAppDatabase} from '../db/appDatabase';
 import {listReportRecords, type QueuedReportRecord} from '../db/queue';
-import {REPORT_TYPE_LABELS} from '../forms/reportFormConfig';
-
-const STATUS_LABEL: Record<CrisisReport['sync_status'], string> = {
-  local: 'Saved on this phone only',
-  relayed: 'Relayed over the mesh',
-  synced: 'Synced to the server',
-};
+import {getReportTypeLabel} from '../forms/reportFormConfig';
+import {useLanguage} from '../i18n/LanguageContext';
+import {translate, type AppLanguage} from '../i18n/translations';
+import {AppText} from '../ui/AppText';
 
 const STATUS_COLOR: Record<CrisisReport['sync_status'], string> = {
   local: '#f59e0b',
@@ -20,26 +17,33 @@ const STATUS_COLOR: Record<CrisisReport['sync_status'], string> = {
 
 type DeliveryPresentation = {message: string; color: string};
 
-export function getDeliveryPresentation(record: QueuedReportRecord): DeliveryPresentation {
+export function getDeliveryPresentation(
+  record: QueuedReportRecord,
+  language: AppLanguage = 'en',
+): DeliveryPresentation {
   if (record.deliveryOutcome === 'accepted') {
-    return {message: 'Delivered: accepted by the server', color: '#15803d'};
+    return {message: translate(language, 'reports.delivery.accepted'), color: '#15803d'};
   }
   if (record.deliveryOutcome === 'duplicate') {
-    return {message: 'Delivered: server confirmed an earlier copy', color: '#15803d'};
+    return {message: translate(language, 'reports.delivery.duplicate'), color: '#15803d'};
   }
   if (record.deliveryOutcome === 'rejected') {
-    return {message: record.deliveryFeedback ?? 'Rejected by the server; queued for retry', color: '#b91c1c'};
+    return {message: translate(language, 'reports.delivery.rejected'), color: '#b91c1c'};
   }
   if (record.deliveryFeedback) {
-    return {message: record.deliveryFeedback, color: '#b45309'};
+    return {message: translate(language, 'reports.delivery.retry'), color: '#b45309'};
   }
-  return {message: STATUS_LABEL[record.report.sync_status], color: '#475569'};
+  return {
+    message: translate(language, `reports.delivery.${record.report.sync_status}`),
+    color: '#475569',
+  };
 }
 
 /** Roadmap §5.3: "a local 'my reports' view showing sync status (local /
  * relayed / synced) so a user isn't left wondering if their SOS actually
  * went anywhere." */
 export function MyReportsScreen({refreshToken = 0}: {refreshToken?: number} = {}) {
+  const {formatDate, language, t} = useLanguage();
   const [records, setRecords] = useState<QueuedReportRecord[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -50,9 +54,9 @@ export function MyReportsScreen({refreshToken = 0}: {refreshToken?: number} = {}
       setRecords(await listReportRecords(db));
       setLoadError(null);
     } catch (error) {
-      setLoadError(error instanceof Error ? error.message : 'The local report database could not be read.');
+      setLoadError(error instanceof Error ? error.message : t('reports.loadFailed.unknown'));
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     // eslint-disable-next-line no-void -- effect callbacks can't be async
@@ -76,37 +80,49 @@ export function MyReportsScreen({refreshToken = 0}: {refreshToken?: number} = {}
       windowSize={5}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       ListHeaderComponent={
-        loadError ? <Text style={styles.error}>Could not load reports: {loadError}</Text> : null
+        loadError ? (
+          <AppText style={styles.error}>
+            {t('reports.loadFailed')} {loadError}
+          </AppText>
+        ) : null
       }
       ListEmptyComponent={
-        loadError ? null : <Text style={styles.empty}>No reports saved on this device yet.</Text>
+        loadError ? null : (
+          <AppText style={styles.empty}>{t('reports.empty')}</AppText>
+        )
       }
       renderItem={({item: record}) => {
         const item = record.report;
-        const delivery = getDeliveryPresentation(record);
+        const delivery = getDeliveryPresentation(record, language);
         return (
           <View style={styles.card} testID={`report-card-${item.message_id}`}>
             <View style={styles.cardHeader}>
-              <Text style={styles.cardType}>{REPORT_TYPE_LABELS[item.type]}</Text>
+              <AppText style={styles.cardType}>
+                {getReportTypeLabel(item.type, language)}
+              </AppText>
               <View style={[styles.statusPill, {backgroundColor: STATUS_COLOR[item.sync_status]}]}>
-                <Text style={styles.statusPillText}>{item.sync_status}</Text>
+                <AppText style={styles.statusPillText}>
+                  {t(`reports.status.${item.sync_status}`)}
+                </AppText>
               </View>
             </View>
-            <Text style={styles.cardTimestamp} testID={`report-created-${item.message_id}`}>
-              Created {new Date(item.created_at).toLocaleString()}
-            </Text>
-            <Text style={styles.cardText} numberOfLines={3}>
+            <AppText style={styles.cardTimestamp} testID={`report-created-${item.message_id}`}>
+              {t('reports.created', {date: formatDate(item.created_at)})}
+            </AppText>
+            <AppText style={styles.cardText} numberOfLines={3}>
               {item.payload.text}
-            </Text>
-            <Text
+            </AppText>
+            <AppText
               style={[styles.deliveryFeedback, {color: delivery.color}]}
               testID={`report-delivery-${item.message_id}`}>
               {delivery.message}
-            </Text>
+            </AppText>
             {record.lastSyncAttemptAt && (
-              <Text style={styles.cardMeta}>
-                Last delivery attempt {new Date(record.lastSyncAttemptAt).toLocaleString()}
-              </Text>
+              <AppText style={styles.cardMeta}>
+                {t('reports.lastAttempt', {
+                  date: formatDate(record.lastSyncAttemptAt),
+                })}
+              </AppText>
             )}
           </View>
         );

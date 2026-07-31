@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
-import { Text } from 'react-native';
+import {StyleSheet, Text} from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Self-contained factory (see relay.test.ts's comment on the Babel hoisting
 // hazard): captures the connectionRequested listener so tests can trigger it
@@ -87,6 +88,30 @@ jest.mock('@react-native-community/geolocation', () => ({
 // src/native/__mocks__/KeystoreWrap.ts.
 jest.mock('../src/native/KeystoreWrap');
 
+// Heavy native-backed modules (offline LLM chat, offline map) are never
+// exercised by these App-level navigation tests; a minimal stub is enough to
+// let App.tsx's static imports resolve without pulling in real native code
+// or ESM the transformIgnorePatterns allow-list doesn't cover.
+jest.mock('@dr.pogodin/react-native-fs', () => ({
+  DocumentDirectoryPath: '/mock-documents',
+  exists: jest.fn(async () => false),
+  mkdir: jest.fn(async () => undefined),
+  copyFileAssets: jest.fn(async () => undefined),
+}));
+
+jest.mock('llama.rn', () => ({
+  initLlama: jest.fn(async () => {
+    throw new Error('llama.rn is not available in tests');
+  }),
+}));
+
+jest.mock('@maplibre/maplibre-react-native', () => ({
+  Camera: () => null,
+  Map: ({children}: {children?: React.ReactNode}) => children,
+  Marker: () => null,
+  VectorSource: () => null,
+}));
+
 // SafeAreaProvider renders `children: null` under Jest without a mock (no
 // real native safe-area insets exist in the test environment). The
 // package ships an official jest mock, but it's untransformed ESM/TSX and
@@ -99,6 +124,7 @@ jest.mock('react-native-safe-area-context', () => ({
 
 import App from '../App';
 import { NearbyConnections } from '../src/native/NearbyConnections';
+import {fontFamilyForLanguage} from '../src/ui/typography';
 
 type MockedNearbyConnections = typeof NearbyConnections & {
   __mockListeners: {
@@ -129,7 +155,8 @@ const mockStop = NearbyConnections.stop as jest.MockedFunction<
   typeof NearbyConnections.stop
 >;
 
-beforeEach(() => {
+beforeEach(async () => {
+  await AsyncStorage.clear();
   for (const listeners of Object.values(mockListeners)) listeners.length = 0;
   mockRespondToConnection.mockReset();
   mockRespondToConnection.mockResolvedValue(undefined);
@@ -137,9 +164,17 @@ beforeEach(() => {
 });
 
 test('renders the app (Create tab by default) without crashing', async () => {
+  let renderer: ReactTestRenderer | undefined;
   await act(async () => {
-    create(<App />);
+    renderer = create(<App />);
   });
+  expect(
+    StyleSheet.flatten(
+      renderer!.root.findByProps({testID: 'app-language-bn'}).findByType(Text)
+        .props.style,
+    ).fontFamily,
+  ).toBe(fontFamilyForLanguage('bn'));
+  await act(async () => renderer!.unmount());
 });
 
 test('shows an incoming Nearby connection request and lets the user accept it', async () => {
@@ -236,7 +271,7 @@ test('keeps the Nearby session connected while navigating between tabs', async (
   });
   expect(
     renderer!.root.findByProps({ testID: 'connected-peer-count' }).props.children,
-  ).toEqual(['Connected peers (', 1, ')']);
+  ).toBe('Connected peers (1)');
 
   await act(async () => {
     renderer!.root.findByProps({ testID: 'tab-reports' }).props.onPress();
@@ -245,4 +280,56 @@ test('keeps the Nearby session connected while navigating between tabs', async (
 
   await act(async () => renderer!.unmount());
   expect(mockStop).toHaveBeenCalledTimes(1);
+});
+
+test('switches the complete interface to Bangla without stopping Nearby', async () => {
+  let renderer: ReactTestRenderer | undefined;
+  await act(async () => {
+    renderer = create(<App />);
+  });
+
+  await act(async () => {
+    mockListeners.endpointFound[0]({
+      endpointId: 'peer-language',
+      name: 'Protidhoni-peer',
+    });
+    mockListeners.connected[0]({endpointId: 'peer-language'});
+  });
+
+  await act(async () => {
+    renderer!.root.findByProps({testID: 'app-language-bn'}).props.onPress();
+  });
+
+  expect(
+    renderer!.root.findByProps({testID: 'tab-create'}).findByType(Text).props
+      .children,
+  ).toBe('তৈরি করুন');
+  expect(
+    renderer!.root.findByProps({testID: 'tab-reports'}).findByType(Text).props
+      .children,
+  ).toBe('আমার প্রতিবেদন');
+  expect(
+    renderer!.root.findByProps({testID: 'global-connection-status'}).props
+      .children.props.children,
+  ).toContain('১ জন সংযুক্ত');
+  expect(mockStop).not.toHaveBeenCalled();
+  expect(await AsyncStorage.getItem('@protidhoni/app-language')).toBe('bn');
+
+  await act(async () => renderer!.unmount());
+});
+
+test('restores the persisted Bangla choice on the next app render', async () => {
+  await AsyncStorage.setItem('@protidhoni/app-language', 'bn');
+  let renderer: ReactTestRenderer | undefined;
+  await act(async () => {
+    renderer = create(<App />);
+    await Promise.resolve();
+  });
+
+  expect(
+    renderer!.root.findByProps({testID: 'tab-mesh'}).findByType(Text).props
+      .children,
+  ).toBe('কাছাকাছি');
+
+  await act(async () => renderer!.unmount());
 });

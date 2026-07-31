@@ -1,0 +1,64 @@
+{"text": "জলোচ্ছ্বাসে আমাদের বাড়ি ঘিরে ফেলেছে পানি, এখনই নৌকা পাঠান।", "type": "SOS"}
+{"text": "আমি সাঁতার জানি না, স্রোতে ভেসে যাচ্ছি, বাঁচাও।", "type": "SOS"}
+{"text": "Rising water has surrounded our house completely, send a boat now.", "type": "SOS"}
+{"text": "We are stuck inside a collapsed building after the explosion, help.", "type": "SOS"}
+{"text": "Amra chader upore atka, notouka lagbe, taratari pathan.", "type": "SOS"}
+{"text": "Trapped under a fallen tree after the storm, cannot move, send help.", "type": "SOS"}
+{"text": "নৌকাডুবিতে আমরা মাঝনদীতে আটকা, উদ্ধার দরকার এখনই।", "type": "SOS"}
+{"text": "Gas explosion trapped several people inside the shop, urgent rescue needed.", "type": "SOS"}
+{"text": "একজনের পায়ে গভীর ক্ষত হয়েছে, সেলাই লাগবে, ডাক্তার পাঠান।", "type": "MEDICAL_NEED"}
+{"text": "বিষাক্ত পোকার কামড়ে একটি শিশু ফুলে গেছে, চিকিৎসা দরকার।", "type": "MEDICAL_NEED"}
+{"text": "An elderly woman is having difficulty breathing, needs oxygen and a doctor.", "type": "MEDICAL_NEED"}
+{"text": "A worker fell from a height and cannot move his legs, needs urgent care.", "type": "MEDICAL_NEED"}
+{"text": "Ekjon buro manush er sash nite koshto hocche, oxygen lagbe.", "type": "MEDICAL_NEED"}
+{"text": "High fever and vomiting for two days, the child needs medicine urgently.", "type": "MEDICAL_NEED"}
+{"text": "দুর্ঘটনায় একজনের পা থেঁতলে গেছে, দ্রুত অস্ত্রোপচার দরকার।", "type": "MEDICAL_NEED"}
+{"text": "Someone fainted from dehydration in the heat, needs IV fluids now.", "type": "MEDICAL_NEED"}
+{"text": "শিশুদের জন্য বিশুদ্ধ পানি ও পুষ্টিকর খাবার জরুরি ভিত্তিতে দরকার।", "type": "RESOURCE_NEED"}
+{"text": "আশ্রয়কেন্দ্রে পর্যাপ্ত কম্বল নেই, আরও পাঠানো দরকার।", "type": "RESOURCE_NEED"}
+{"text": "We need sanitary supplies and soap for the shelter, stocks are empty.", "type": "RESOURCE_NEED"}
+{"text": "Drinking water tablets and rice are urgently needed in this area.", "type": "RESOURCE_NEED"}
+{"text": "Amader shelter e r kono kombol nai, aro lagbe.", "type": "RESOURCE_NEED"}
+{"text": "The relief camp needs more cooking oil and firewood urgently.", "type": "RESOURCE_NEED"}
+{"text": "এলাকায় বিশুদ্ধ পানির তীব্র সংকট, ট্যাংকার পাঠানো দরকার।", "type": "RESOURCE_NEED"}
+{"text": "We need more tarpaulins, the current shelter tents are leaking.", "type": "RESOURCE_NEED"}
+{"text": "আমার ছেলে স্কুল থেকে ফেরেনি, তার কোনো খোঁজ নেই।", "type": "SAFETY_STATUS"}
+{"text": "আমরা সবাই নৌকায় করে নিরাপদে চলে এসেছি।", "type": "SAFETY_STATUS"}
+{"text": "We are safe now, staying with relatives in a nearby town.", "type": "SAFETY_STATUS"}
+{"text": "My father went to check the field and hasn't returned since morning.", "type": "SAFETY_STATUS"}
+{"text": "Amra shobai thik achi, apatoto kono somossa nai.", "type": "SAFETY_STATUS"}
+{"text": "Two fishermen from our village are missing since the storm.", "type": "SAFETY_STATUS"}
+{"text": "প্রতিবেশীর পুরো পরিবার নিরাপদে আছে, আজ সকালে দেখা হয়েছে।", "type": "SAFETY_STATUS"}
+{"text": "Lost contact with my uncle's family after the phone lines went down.", "type": "SAFETY_STATUS"}
+{"text": "থানার পাশের ভবনে আরেকটি আশ্রয়কেন্দ্র খোলা হয়েছে।", "type": "SHELTER_INFO"}
+{"text": "আশ্রয়কেন্দ্রে নারী ও শিশুদের জন্য আলাদা জায়গা আছে।", "type": "SHELTER_INFO"}
+{"text": "A new shelter has opened at the sports complex with food service.", "type": "SHELTER_INFO"}
+{"text": "The nearest shelter is the primary school, about two kilometres away.", "type": "SHELTER_INFO"}
+{"text": "Ashroy kendro e ekhono khabar r pani ache, chole ashen.", "type": "SHELTER_INFO"}
+{"text": "The stadium is now being used as an overflow shelter camp.", "type": "SHELTER_INFO"}
+{"text": "আশ্রয়কেন্দ্রে জেনারেটরের ব্যবস্থা আছে, রাতে আলো থাকবে।", "type": "SHELTER_INFO"}
+{"text": "The church hall nearby has opened its doors as a temporary shelter.", "type": "SHELTER_INFO"}
+{"text": "খালের পানি উপচে রাস্তা তলিয়ে গেছে, চলাচল বিপজ্জনক।", "type": "HAZARD_UPDATE"}
+{"text": "স্কুল ভবনের ছাদে ফাটল দেখা গেছে ভূমিকম্পের পর।", "type": "HAZARD_UPDATE"}
+{"text": "Heavy rain has weakened the embankment, a breach looks imminent.", "type": "HAZARD_UPDATE"}
+{"text": "A transformer exploded near the market, sparks are still visible.", "type": "HAZARD_UPDATE"}
+{"text": "Culvert ti pani r chape venge geche, gari cholte parche na.", "type": "HAZARD_UPDATE"}
+{"text": "Strong winds have knocked down several electric poles on the highway.", "type": "HAZARD_UPDATE"}
+{"text": "পাহাড়ের ঢালে বড় ফাটল দেখা দিয়েছে, ধসের আশঙ্কা।", "type": "HAZARD_UPDATE"}
+{"text": "The riverside road has been washed away overnight by the current.", "type": "HAZARD_UPDATE"}
+{"text": "খালপাড়ের রাস্তা প্লাবিত, বাঁধের উপর দিয়ে ঘুরে যান।", "type": "SAFE_ROUTE"}
+{"text": "পুরনো সেতু ঝুঁকিপূর্ণ, নতুন সেতু দিয়ে পার হন।", "type": "SAFE_ROUTE"}
+{"text": "The bypass road is still open and safe for vehicles.", "type": "SAFE_ROUTE"}
+{"text": "Use the hilltop path instead of the riverside track, it is safer now.", "type": "SAFE_ROUTE"}
+{"text": "Notun rasta ta shukno ache, oi diye jaoa jai.", "type": "SAFE_ROUTE"}
+{"text": "The road past the mosque is currently the safest way to the shelter.", "type": "SAFE_ROUTE"}
+{"text": "পূর্বের রাস্তা বন্ধ থাকায় দক্ষিণের সড়ক ধরে যান।", "type": "SAFE_ROUTE"}
+{"text": "Take the higher ground path near the school, the lower one is flooded.", "type": "SAFE_ROUTE"}
+{"text": "দুর্যোগ ব্যবস্থাপনা কর্তৃপক্ষের নির্দেশ ছাড়া নদী পার হবেন না।", "type": "INSTRUCTION"}
+{"text": "খোলা তারের কাছাকাছি যাবেন না, বিদ্যুৎ বিভাগ কাজ করছে।", "type": "INSTRUCTION"}
+{"text": "All residents must evacuate the low-lying area before nightfall.", "type": "INSTRUCTION"}
+{"text": "Do not drink from the tube well until it has been tested.", "type": "INSTRUCTION"}
+{"text": "Prosashon er nirdesh na paoa porjonto barite thakun.", "type": "INSTRUCTION"}
+{"text": "Follow the marked evacuation route, do not take shortcuts through fields.", "type": "INSTRUCTION"}
+{"text": "পরবর্তী ঘোষণা না আসা পর্যন্ত উপকূলে ফিরবেন না।", "type": "INSTRUCTION"}
+{"text": "Keep away from the collapsed structure until engineers inspect it.", "type": "INSTRUCTION"}

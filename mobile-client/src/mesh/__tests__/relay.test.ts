@@ -12,6 +12,8 @@ import {
   updateSyncStatus,
 } from "../../db/queue";
 import { createNodeSqliteExecutor } from "../../db/testSupport/nodeSqliteExecutor";
+import { enqueueMark, initMapMarkSchema, listMarks } from "../../db/marks";
+import { createSignedMark } from "../../crypto/mark";
 
 // relay.ts's listeners return their handler's promise (see the comment in
 // relay.ts), so tests can `await` a triggered event directly instead of
@@ -105,6 +107,7 @@ describe("startMeshRelay", () => {
   it("sends every unsynced queued report to a newly connected peer", async () => {
     const db = createNodeSqliteExecutor();
     await initReportQueueSchema(db);
+    await initMapMarkSchema(db);
     const report = makeReport();
     await enqueueReport(db, report);
 
@@ -122,6 +125,7 @@ describe("startMeshRelay", () => {
   it("decrements ttl_hops and appends this device's identity to relay_path when forwarding", async () => {
     const db = createNodeSqliteExecutor();
     await initReportQueueSchema(db);
+    await initMapMarkSchema(db);
 
     await enqueueReport(db, makeReport({ ttl_hops: 5, relay_path: ["Z".repeat(43)] }));
 
@@ -139,6 +143,7 @@ describe("startMeshRelay", () => {
   it("does not forward a report whose ttl_hops has already reached 0", async () => {
     const db = createNodeSqliteExecutor();
     await initReportQueueSchema(db);
+    await initMapMarkSchema(db);
 
     await enqueueReport(db, makeReport({ ttl_hops: 0 }));
 
@@ -151,6 +156,7 @@ describe("startMeshRelay", () => {
   it("enqueues a genuinely new incoming report (mesh dedup lets duplicates through harmlessly)", async () => {
     const db = createNodeSqliteExecutor();
     await initReportQueueSchema(db);
+    await initMapMarkSchema(db);
     const incoming = makeReport({ message_id: "22222222-2222-4222-8222-222222222222" });
     const bytes = utf8Encode(JSON.stringify(incoming));
 
@@ -164,6 +170,7 @@ describe("startMeshRelay", () => {
   it("receiving the same message_id twice does not duplicate it (mesh dedup)", async () => {
     const db = createNodeSqliteExecutor();
     await initReportQueueSchema(db);
+    await initMapMarkSchema(db);
     const incoming = makeReport({ message_id: "33333333-3333-4333-8333-333333333333" });
     const dataBase64 = base64Encode(utf8Encode(JSON.stringify(incoming)));
 
@@ -178,6 +185,7 @@ describe("startMeshRelay", () => {
   it("forwards a newly received report to other connected peers without echoing it", async () => {
     const db = createNodeSqliteExecutor();
     await initReportQueueSchema(db);
+    await initMapMarkSchema(db);
     startMeshRelay(db);
     await mockListeners.connected[0]({ endpointId: "source-peer" });
     await mockListeners.connected[0]({ endpointId: "next-peer" });
@@ -197,6 +205,7 @@ describe("startMeshRelay", () => {
   it("silently ignores a malformed/non-report payload instead of crashing", async () => {
     const db = createNodeSqliteExecutor();
     await initReportQueueSchema(db);
+    await initMapMarkSchema(db);
 
     startMeshRelay(db);
     await mockListeners.payloadReceived[0]({
@@ -210,6 +219,7 @@ describe("startMeshRelay", () => {
   it("unsubscribe stops further relaying", async () => {
     const db = createNodeSqliteExecutor();
     await initReportQueueSchema(db);
+    await initMapMarkSchema(db);
 
     await enqueueReport(db, makeReport());
 
@@ -225,6 +235,7 @@ describe("startMeshRelay", () => {
   it("relays a report created after the peer is already connected", async () => {
     const db = createNodeSqliteExecutor();
     await initReportQueueSchema(db);
+    await initMapMarkSchema(db);
     const relay = startMeshRelay(db);
     await mockListeners.connected[0]({ endpointId: "peer-1" });
 
@@ -242,6 +253,7 @@ describe("startMeshRelay", () => {
   it("does not send newly queued reports to a disconnected peer", async () => {
     const db = createNodeSqliteExecutor();
     await initReportQueueSchema(db);
+    await initMapMarkSchema(db);
     const relay = startMeshRelay(db);
     await mockListeners.connected[0]({ endpointId: "peer-1" });
     mockListeners.disconnected[0]({ endpointId: "peer-1" });
@@ -256,6 +268,7 @@ describe("startMeshRelay", () => {
   it("does not re-forward a report that is already synced", async () => {
     const db = createNodeSqliteExecutor();
     await initReportQueueSchema(db);
+    await initMapMarkSchema(db);
 
     const report = makeReport();
     await enqueueReport(db, report);
@@ -266,5 +279,123 @@ describe("startMeshRelay", () => {
 
     expect(mockSendPayload).not.toHaveBeenCalled();
     expect(await listUnsyncedReports(db)).toHaveLength(0);
+  });
+
+  describe("map marks", () => {
+    it("sends a newly placed mark to every connected peer", async () => {
+      const db = createNodeSqliteExecutor();
+      await initReportQueueSchema(db);
+      await initMapMarkSchema(db);
+      const relay = startMeshRelay(db);
+      await mockListeners.connected[0]({ endpointId: "peer-1" });
+
+      const mark = await createSignedMark({
+        lat: 23.81,
+        lng: 90.41,
+        category: "HAZARD",
+        label: "রাস্তা ভাঙা",
+      });
+      const peerCount = await relay.relayMark(mark);
+
+      expect(peerCount).toBe(1);
+      expect(mockSendPayload).toHaveBeenCalledWith("peer-1", expect.any(String));
+    });
+
+    it("offers every known mark to a newly connected peer", async () => {
+      const db = createNodeSqliteExecutor();
+      await initReportQueueSchema(db);
+      await initMapMarkSchema(db);
+      const mark = await createSignedMark({
+        lat: 23.81,
+        lng: 90.41,
+        category: "SHELTER",
+        label: "আশ্রয়কেন্দ্র",
+      });
+      await enqueueMark(db, mark);
+
+      startMeshRelay(db);
+      await mockListeners.connected[0]({ endpointId: "peer-1" });
+
+      expect(mockSendPayload).toHaveBeenCalledTimes(1);
+      const [, dataBase64] = mockSendPayload.mock.calls[0];
+      const decoded = JSON.parse(Buffer.from(dataBase64 as string, "base64").toString("utf-8"));
+      expect(decoded.mark_id).toBe(mark.mark_id);
+    });
+
+    it("enqueues a genuinely new incoming mark with a valid signature", async () => {
+      const db = createNodeSqliteExecutor();
+      await initReportQueueSchema(db);
+      await initMapMarkSchema(db);
+      const mark = await createSignedMark({
+        lat: 23.7,
+        lng: 90.4,
+        category: "SAFE_ROUTE",
+        label: "নিরাপদ রাস্তা",
+      });
+
+      startMeshRelay(db);
+      await mockListeners.payloadReceived[0]({
+        endpointId: "peer-1",
+        dataBase64: base64Encode(utf8Encode(JSON.stringify(mark))),
+      });
+
+      expect(await listMarks(db)).toHaveLength(1);
+    });
+
+    it("silently rejects an incoming mark whose signature does not match its content", async () => {
+      const db = createNodeSqliteExecutor();
+      await initReportQueueSchema(db);
+      await initMapMarkSchema(db);
+      const mark = await createSignedMark({
+        lat: 23.7,
+        lng: 90.4,
+        category: "HAZARD",
+        label: "আগুন",
+      });
+      const tampered = { ...mark, label: "নিরাপদ" }; // content changed after signing
+
+      startMeshRelay(db);
+      await mockListeners.payloadReceived[0]({
+        endpointId: "peer-1",
+        dataBase64: base64Encode(utf8Encode(JSON.stringify(tampered))),
+      });
+
+      expect(await listMarks(db)).toHaveLength(0);
+    });
+
+    it("does not forward a mark whose ttl_hops has already reached 0", async () => {
+      const db = createNodeSqliteExecutor();
+      await initReportQueueSchema(db);
+      await initMapMarkSchema(db);
+      const relay = startMeshRelay(db);
+      await mockListeners.connected[0]({ endpointId: "peer-1" });
+
+      const mark = await createSignedMark({
+        lat: 23.7,
+        lng: 90.4,
+        category: "OTHER",
+        label: "test",
+      });
+      await expect(relay.relayMark({ ...mark, ttl_hops: 0 })).resolves.toBe(0);
+    });
+
+    it("receiving the same mark_id twice does not duplicate it", async () => {
+      const db = createNodeSqliteExecutor();
+      await initReportQueueSchema(db);
+      await initMapMarkSchema(db);
+      const mark = await createSignedMark({
+        lat: 23.7,
+        lng: 90.4,
+        category: "RESOURCE",
+        label: "পানি আছে",
+      });
+      const dataBase64 = base64Encode(utf8Encode(JSON.stringify(mark)));
+
+      startMeshRelay(db);
+      await mockListeners.payloadReceived[0]({ endpointId: "peer-1", dataBase64 });
+      await mockListeners.payloadReceived[0]({ endpointId: "peer-2", dataBase64 });
+
+      expect(await listMarks(db)).toHaveLength(1);
+    });
   });
 });

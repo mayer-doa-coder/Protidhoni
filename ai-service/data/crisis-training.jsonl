@@ -1,0 +1,240 @@
+{"text": "বাঁচান! আমরা পানিতে আটকা পড়েছি, এখনই উদ্ধার দরকার।", "type": "SOS"}
+{"text": "সাহায্য করুন, ঘরের ছাদ ধসে পড়েছে, মানুষ ভেতরে আটকা আছে।", "type": "SOS"}
+{"text": "আমাদের নৌকা নদীতে ডুবে যাচ্ছে, দ্রুত উদ্ধারকারী পাঠান।", "type": "SOS"}
+{"text": "ছাদের উপর আটকা পড়েছি, পানি ক্রমাগত বাড়ছে, বাঁচাও।", "type": "SOS"}
+{"text": "ঘরে আগুন লেগেছে, বের হওয়ার রাস্তা নেই, তাড়াতাড়ি আসুন।", "type": "SOS"}
+{"text": "বন্যার স্রোতে একটা বাচ্চা ভেসে যাচ্ছে, কেউ বাঁচাও।", "type": "SOS"}
+{"text": "ভূমিধসে আমাদের ঘর চাপা পড়েছে, আমরা ভেতরে আটকা।", "type": "SOS"}
+{"text": "ব্রিজ ভেঙে পড়েছে, আমরা পানিতে পড়ে গেছি, উদ্ধার করুন।", "type": "SOS"}
+{"text": "ভূমিকম্পে দেয়াল ধসে পড়েছে, আমার পা চাপা পড়ে আছে।", "type": "SOS"}
+{"text": "গাড়িসহ আমরা বন্যার পানিতে ভেসে যাচ্ছি, বাঁচান আমাদের।", "type": "SOS"}
+{"text": "Help! We are trapped by rising floodwater and need urgent rescue.", "type": "SOS"}
+{"text": "SOS, the roof is collapsing and people are still trapped inside.", "type": "SOS"}
+{"text": "Our boat is capsizing in the river, please send rescue immediately.", "type": "SOS"}
+{"text": "Trapped on the rooftop, water is still rising, we need help now.", "type": "SOS"}
+{"text": "Fire has spread through the whole building, we cannot find a way out.", "type": "SOS"}
+{"text": "A child has been swept away by the flood current, please help.", "type": "SOS"}
+{"text": "Landslide has buried our house, we are stuck under the debris.", "type": "SOS"}
+{"text": "The bridge collapsed while we were crossing, we fell into the water.", "type": "SOS"}
+{"text": "Wall collapsed after the tremor, my leg is trapped under the rubble.", "type": "SOS"}
+{"text": "Our car is being swept away by the flood, please save us.", "type": "SOS"}
+{"text": "Amra pani te atka porechi, ekhoni rescue team pathan please.", "type": "SOS"}
+{"text": "Bachao, barir chad dhoshe geche, ashepashe manush atka ache.", "type": "SOS"}
+{"text": "Amader nouka nodi te dube jacche, taratari lok pathan.", "type": "SOS"}
+{"text": "Chad er upore atka, pani ekhono barche, keu bachao amader.", "type": "SOS"}
+{"text": "Ghor e agun legeche, ber howar kono rasta nai, urgent help lagbe.", "type": "SOS"}
+{"text": "Ekta baccha bonnar pani te veshe jacche, keu bachao taratari.", "type": "SOS"}
+{"text": "Bhumidhosh e amader ghor chapa porechi, amra vitore atka.", "type": "SOS"}
+{"text": "Bridge bhenge amra pani te pore gechi, please rescue korun.", "type": "SOS"}
+{"text": "Bhumikompo r pore deyal dhoshe amar pa chapa pore ache.", "type": "SOS"}
+{"text": "Amader gari bonnar pani te bhese jacche, bachao amader please.", "type": "SOS"}
+{"text": "আহত ব্যক্তির জন্য জরুরি ডাক্তার ও অ্যাম্বুলেন্স দরকার।", "type": "MEDICAL_NEED"}
+{"text": "প্রচণ্ড রক্তক্ষরণ হচ্ছে, আমাদের রক্ত ও ওষুধ প্রয়োজন।", "type": "MEDICAL_NEED"}
+{"text": "সাপে কামড়েছে একজনকে, তাকে এখনই হাসপাতালে নিতে হবে।", "type": "MEDICAL_NEED"}
+{"text": "একজন গর্ভবতী মহিলার প্রসব বেদনা উঠেছে, ধাত্রী দরকার।", "type": "MEDICAL_NEED"}
+{"text": "প্রচণ্ড গরমে একজন অজ্ঞান হয়ে পড়ে গেছে, চিকিৎসা দরকার।", "type": "MEDICAL_NEED"}
+{"text": "ডেঙ্গু জ্বরে অনেকে অসুস্থ, ওষুধ ও চিকিৎসক প্রয়োজন।", "type": "MEDICAL_NEED"}
+{"text": "পড়ে গিয়ে হাত ভেঙে গেছে, ব্যথায় কাতরাচ্ছে, সাহায্য দরকার।", "type": "MEDICAL_NEED"}
+{"text": "বুকে ব্যথা নিয়ে একজন কাতরাচ্ছেন, হৃদরোগের সন্দেহ, অ্যাম্বুলেন্স চাই।", "type": "MEDICAL_NEED"}
+{"text": "ডায়রিয়ায় গ্রামের অনেকে ভুগছে, স্যালাইন ও ওষুধ দরকার।", "type": "MEDICAL_NEED"}
+{"text": "মাথায় আঘাত পেয়ে রক্তপাত হচ্ছে, দ্রুত চিকিৎসা প্রয়োজন।", "type": "MEDICAL_NEED"}
+{"text": "Urgent medical help needed, an injured person requires a doctor and ambulance.", "type": "MEDICAL_NEED"}
+{"text": "Severe bleeding here, we need blood supply and medicine immediately.", "type": "MEDICAL_NEED"}
+{"text": "Someone has been bitten by a snake, needs to reach a hospital now.", "type": "MEDICAL_NEED"}
+{"text": "A pregnant woman has gone into labor, we need a midwife urgently.", "type": "MEDICAL_NEED"}
+{"text": "Someone collapsed from heatstroke and is unconscious, needs medical care.", "type": "MEDICAL_NEED"}
+{"text": "Many villagers are down with dengue fever, medicine and a doctor are needed.", "type": "MEDICAL_NEED"}
+{"text": "An elderly man fell and broke his arm, he is in severe pain.", "type": "MEDICAL_NEED"}
+{"text": "A person is having chest pain, possible heart attack, send an ambulance.", "type": "MEDICAL_NEED"}
+{"text": "Several children have diarrhea, we need oral rehydration salts and medicine.", "type": "MEDICAL_NEED"}
+{"text": "Head injury with heavy bleeding, needs urgent medical attention.", "type": "MEDICAL_NEED"}
+{"text": "Ekjon ahoto lok er jonno doctor r ambulance lagbe ekhoni.", "type": "MEDICAL_NEED"}
+{"text": "Onek rokto porche, amader blood r oshudh proyojon.", "type": "MEDICAL_NEED"}
+{"text": "Shap kamrayeche ekjon k, take hospital e nite hobe taratari.", "type": "MEDICAL_NEED"}
+{"text": "Ekjon pregnant apa r labor pain uthese, midwife lagbe joruri.", "type": "MEDICAL_NEED"}
+{"text": "Gorom e ekjon oggan hoye porche, medical help lagbe.", "type": "MEDICAL_NEED"}
+{"text": "Dengue jor e onek manush osusto, oshudh r doctor proyojon.", "type": "MEDICAL_NEED"}
+{"text": "Pore giye hat venge geche, khub bytha korche, sahajjo lagbe.", "type": "MEDICAL_NEED"}
+{"text": "Buke bytha niye ekjon katurachen, ambulance dorkar taratari.", "type": "MEDICAL_NEED"}
+{"text": "Onek bacchar diarrhea hoyeche, saline r oshudh lagbe.", "type": "MEDICAL_NEED"}
+{"text": "Matha te aghat peye rokto porche, urgent chikitsha proyojon.", "type": "MEDICAL_NEED"}
+{"text": "আমাদের বিশুদ্ধ খাবার পানি ও শুকনো খাবার দরকার।", "type": "RESOURCE_NEED"}
+{"text": "পরিবারগুলোর জন্য কম্বল ও শুকনো কাপড় প্রয়োজন।", "type": "RESOURCE_NEED"}
+{"text": "বাচ্চাদের জন্য দুধ ও শিশুখাদ্য দরকার এই মুহূর্তে।", "type": "RESOURCE_NEED"}
+{"text": "ত্রাণ সামগ্রী ফুরিয়ে গেছে, আরও চাল ডাল দরকার।", "type": "RESOURCE_NEED"}
+{"text": "রান্নার জন্য জ্বালানি ও গ্যাসের প্রয়োজন এলাকায়।", "type": "RESOURCE_NEED"}
+{"text": "খাবার পানির উৎস নষ্ট হয়ে গেছে, বিশুদ্ধ পানি চাই।", "type": "RESOURCE_NEED"}
+{"text": "মোমবাতি ও টর্চ লাইট দরকার, বিদ্যুৎ নেই তিনদিন ধরে।", "type": "RESOURCE_NEED"}
+{"text": "অনেক পরিবারের কাছে কোনো খাবার নেই, সাহায্য দরকার।", "type": "RESOURCE_NEED"}
+{"text": "তাঁবু ও পলিথিন শিট দরকার আশ্রয়ের জন্য।", "type": "RESOURCE_NEED"}
+{"text": "স্যালাইন ও বিশুদ্ধ পানির ট্যাবলেট প্রয়োজন এলাকায়।", "type": "RESOURCE_NEED"}
+{"text": "We urgently need clean drinking water and dry food supplies.", "type": "RESOURCE_NEED"}
+{"text": "Families here need blankets and dry clothes, everything got soaked.", "type": "RESOURCE_NEED"}
+{"text": "Babies need milk powder and baby food, supplies have run out.", "type": "RESOURCE_NEED"}
+{"text": "Relief stock has run out, we need more rice and lentils.", "type": "RESOURCE_NEED"}
+{"text": "We need cooking fuel and gas cylinders for the shelter.", "type": "RESOURCE_NEED"}
+{"text": "The water source is contaminated, we need clean drinking water urgently.", "type": "RESOURCE_NEED"}
+{"text": "We need candles and torch lights, there has been no power for days.", "type": "RESOURCE_NEED"}
+{"text": "Many families here have no food left, please send supplies.", "type": "RESOURCE_NEED"}
+{"text": "We need tents and tarpaulin sheets for temporary shelter.", "type": "RESOURCE_NEED"}
+{"text": "We need water purification tablets, the tube well is flooded.", "type": "RESOURCE_NEED"}
+{"text": "Amader bishudho khabar pani r shukno khabar lagbe.", "type": "RESOURCE_NEED"}
+{"text": "Poribar gulor jonno kombol r shukno kapor proyojon.", "type": "RESOURCE_NEED"}
+{"text": "Bacchader jonno dudh r baby food lagbe ekhon.", "type": "RESOURCE_NEED"}
+{"text": "Traan somogri sesh hoye geche, aro chal dal lagbe.", "type": "RESOURCE_NEED"}
+{"text": "Randhar jonno jalani r gas cylinder proyojon eikhane.", "type": "RESOURCE_NEED"}
+{"text": "Khabar pani r utso noshto hoye geche, bishudho pani chai.", "type": "RESOURCE_NEED"}
+{"text": "Mombati r torch light lagbe, tin din dhore current nai.", "type": "RESOURCE_NEED"}
+{"text": "Onek poribarer kache kono khabar nai, sahajjo lagbe.", "type": "RESOURCE_NEED"}
+{"text": "Tent r polythene sheet lagbe ashroy er jonno.", "type": "RESOURCE_NEED"}
+{"text": "Saline r pani purification tablet proyojon eikhane.", "type": "RESOURCE_NEED"}
+{"text": "আমরা সবাই নিরাপদে আছি, চিন্তার কিছু নেই।", "type": "SAFETY_STATUS"}
+{"text": "আমার ভাই নিখোঁজ, বন্যার পর থেকে যোগাযোগ নেই।", "type": "SAFETY_STATUS"}
+{"text": "পরিবারের সবাইকে নিরাপদে সরিয়ে নেওয়া হয়েছে।", "type": "SAFETY_STATUS"}
+{"text": "প্রতিবেশীর খোঁজ পাওয়া যাচ্ছে না, শেষবার নদীর পাড়ে দেখা গেছে।", "type": "SAFETY_STATUS"}
+{"text": "আমরা নিরাপদ আশ্রয়ে পৌঁছেছি, সবাই ভালো আছি।", "type": "SAFETY_STATUS"}
+{"text": "আমার মা এখনো বাড়িতে, তার সাথে যোগাযোগ হচ্ছে না।", "type": "SAFETY_STATUS"}
+{"text": "পরিবারের সবাই একসাথে আছি, কোনো ক্ষতি হয়নি।", "type": "SAFETY_STATUS"}
+{"text": "একজন বৃদ্ধ ব্যক্তিকে খুঁজে পাওয়া যাচ্ছে না বন্যার পর থেকে।", "type": "SAFETY_STATUS"}
+{"text": "আমরা সবাই নিরাপদে পাশের গ্রামে আশ্রয় নিয়েছি।", "type": "SAFETY_STATUS"}
+{"text": "আমার স্ত্রী এখনো নিখোঁজ, শেষ যোগাযোগ গতকাল রাতে।", "type": "SAFETY_STATUS"}
+{"text": "We are all safe, no need to worry about us.", "type": "SAFETY_STATUS"}
+{"text": "My brother has been missing since the flood, no contact at all.", "type": "SAFETY_STATUS"}
+{"text": "The whole family has been safely evacuated to higher ground.", "type": "SAFETY_STATUS"}
+{"text": "Our neighbor cannot be found, last seen near the riverbank.", "type": "SAFETY_STATUS"}
+{"text": "We reached the safe shelter, everyone here is doing fine.", "type": "SAFETY_STATUS"}
+{"text": "My mother is still at home, we cannot reach her by phone.", "type": "SAFETY_STATUS"}
+{"text": "Our whole family is together and unharmed.", "type": "SAFETY_STATUS"}
+{"text": "An elderly man has not been found since the flood started.", "type": "SAFETY_STATUS"}
+{"text": "We have all safely taken shelter in the next village.", "type": "SAFETY_STATUS"}
+{"text": "My wife is still missing, last contact was last night.", "type": "SAFETY_STATUS"}
+{"text": "Amra shobai nirapode achi, chinta korar dorkar nai.", "type": "SAFETY_STATUS"}
+{"text": "Amar bhai nikhoj, bonnar por theke jogajog nai.", "type": "SAFETY_STATUS"}
+{"text": "Poribar er shobai k nirapode shorie neya hoyeche.", "type": "SAFETY_STATUS"}
+{"text": "Protibeshi r khoj paoa jacche na, nodi r par e dekha geche last.", "type": "SAFETY_STATUS"}
+{"text": "Amra nirapod ashroy e pouchechi, shobai bhalo achi.", "type": "SAFETY_STATUS"}
+{"text": "Amar ma ekhono barite, tar shathe jogajog hocche na.", "type": "SAFETY_STATUS"}
+{"text": "Poribar er shobai eksathe achi, kono khoti hoyni.", "type": "SAFETY_STATUS"}
+{"text": "Ekjon briddho k khuje paoa jacche na bonnar por theke.", "type": "SAFETY_STATUS"}
+{"text": "Amra shobai nirapode pasher gram e ashroy niyechi.", "type": "SAFETY_STATUS"}
+{"text": "Amar stri ekhono nikhoj, last jogajog gotokal rate.", "type": "SAFETY_STATUS"}
+{"text": "স্থানীয় স্কুলে আশ্রয়কেন্দ্র খোলা হয়েছে, জায়গা আছে।", "type": "SHELTER_INFO"}
+{"text": "আশ্রয়কেন্দ্রে আর জায়গা নেই, নতুন কেন্দ্র দরকার।", "type": "SHELTER_INFO"}
+{"text": "ইউনিয়ন পরিষদ ভবনে আশ্রয় নেওয়ার ব্যবস্থা আছে।", "type": "SHELTER_INFO"}
+{"text": "কমিউনিটি সেন্টারে দুইশত মানুষের থাকার জায়গা খালি আছে।", "type": "SHELTER_INFO"}
+{"text": "মসজিদ চত্বরে অস্থায়ী আশ্রয়কেন্দ্র খোলা হয়েছে।", "type": "SHELTER_INFO"}
+{"text": "আশ্রয়কেন্দ্রে বিদ্যুৎ ও পানির ব্যবস্থা আছে।", "type": "SHELTER_INFO"}
+{"text": "উঁচু রাস্তার পাশের ভবনে মানুষ আশ্রয় নিচ্ছে।", "type": "SHELTER_INFO"}
+{"text": "স্থানীয় কলেজ মাঠে ত্রাণ ও আশ্রয় শিবির খোলা হয়েছে।", "type": "SHELTER_INFO"}
+{"text": "আশ্রয়কেন্দ্রে চিকিৎসা সহায়তার ব্যবস্থাও আছে।", "type": "SHELTER_INFO"}
+{"text": "গ্রামের উঁচু জায়গায় অস্থায়ী তাঁবু ক্যাম্প বসানো হয়েছে।", "type": "SHELTER_INFO"}
+{"text": "The local school has opened as a shelter, there is still space.", "type": "SHELTER_INFO"}
+{"text": "The evacuation centre is completely full, we need another one.", "type": "SHELTER_INFO"}
+{"text": "The union council building is being used as a shelter.", "type": "SHELTER_INFO"}
+{"text": "The community centre has room for about two hundred more people.", "type": "SHELTER_INFO"}
+{"text": "A temporary shelter has opened at the mosque courtyard.", "type": "SHELTER_INFO"}
+{"text": "The shelter has electricity and a working water supply.", "type": "SHELTER_INFO"}
+{"text": "People are taking shelter in the building near the highway.", "type": "SHELTER_INFO"}
+{"text": "A relief and shelter camp has opened at the local college ground.", "type": "SHELTER_INFO"}
+{"text": "The shelter also has basic medical assistance available.", "type": "SHELTER_INFO"}
+{"text": "A temporary tent camp has been set up on higher ground in the village.", "type": "SHELTER_INFO"}
+{"text": "Local school e ashroy kendro khola hoyeche, jaiga ache ekhono.", "type": "SHELTER_INFO"}
+{"text": "Ashroy kendro te r jaiga nai, notun kendro lagbe.", "type": "SHELTER_INFO"}
+{"text": "Union porishod bhoban e ashroy nebar bebostha ache.", "type": "SHELTER_INFO"}
+{"text": "Community center e du sho manusher thakar jaiga khali ache.", "type": "SHELTER_INFO"}
+{"text": "Moshjid chottore temporary ashroy kendro khola hoyeche.", "type": "SHELTER_INFO"}
+{"text": "Ashroy kendro te current r pani r bebostha ache.", "type": "SHELTER_INFO"}
+{"text": "Uncho rastar pashe bhobon e manush ashroy nicche.", "type": "SHELTER_INFO"}
+{"text": "Local college math e traan r ashroy shibir khola hoyeche.", "type": "SHELTER_INFO"}
+{"text": "Ashroy kendro te medical shahajjo r bebostha o ache.", "type": "SHELTER_INFO"}
+{"text": "Gramer uncho jaigai temporary tent camp bosano hoyeche.", "type": "SHELTER_INFO"}
+{"text": "বন্যার পানি দ্রুত বাড়ছে, নিচু এলাকা প্লাবিত হচ্ছে।", "type": "HAZARD_UPDATE"}
+{"text": "প্রধান সড়কে গাছ পড়ে রাস্তা সম্পূর্ণ বন্ধ হয়ে গেছে।", "type": "HAZARD_UPDATE"}
+{"text": "সেতুটি ফাটল ধরেছে, যান চলাচল ঝুঁকিপূর্ণ।", "type": "HAZARD_UPDATE"}
+{"text": "বাজার এলাকায় আগুন দ্রুত ছড়িয়ে পড়ছে।", "type": "HAZARD_UPDATE"}
+{"text": "পুরনো ভবনটি হেলে পড়েছে, যে কোনো সময় ধসে যেতে পারে।", "type": "HAZARD_UPDATE"}
+{"text": "নদীর পাড় ভাঙছে, কয়েকটি বাড়ি ঝুঁকিতে আছে।", "type": "HAZARD_UPDATE"}
+{"text": "পাহাড়ি এলাকায় ভূমিধসের ঝুঁকি বেড়েছে ভারী বৃষ্টিতে।", "type": "HAZARD_UPDATE"}
+{"text": "গ্যাস লাইনে লিকেজ হয়েছে, এলাকায় গ্যাসের গন্ধ ছড়াচ্ছে।", "type": "HAZARD_UPDATE"}
+{"text": "বিদ্যুতের তার ছিঁড়ে রাস্তায় পড়ে আছে, বিপজ্জনক অবস্থা।", "type": "HAZARD_UPDATE"}
+{"text": "সমুদ্র উপকূলে ঘূর্ণিঝড় আঘাত হানার আশঙ্কা তৈরি হয়েছে।", "type": "HAZARD_UPDATE"}
+{"text": "Floodwater is rising fast, low-lying areas are getting submerged.", "type": "HAZARD_UPDATE"}
+{"text": "A fallen tree has completely blocked the main road.", "type": "HAZARD_UPDATE"}
+{"text": "The bridge has developed cracks, crossing it is now risky.", "type": "HAZARD_UPDATE"}
+{"text": "Fire is spreading quickly through the market area.", "type": "HAZARD_UPDATE"}
+{"text": "The old building is leaning and could collapse at any moment.", "type": "HAZARD_UPDATE"}
+{"text": "The riverbank is eroding, several houses are now at risk.", "type": "HAZARD_UPDATE"}
+{"text": "Landslide risk has increased in the hilly area due to heavy rain.", "type": "HAZARD_UPDATE"}
+{"text": "A gas line leak has been reported, the smell is spreading nearby.", "type": "HAZARD_UPDATE"}
+{"text": "A downed power line is lying across the road, extremely dangerous.", "type": "HAZARD_UPDATE"}
+{"text": "A cyclone is forecast to make landfall along the coast soon.", "type": "HAZARD_UPDATE"}
+{"text": "Bonnar pani druto barche, nichu elaka plabito hocche.", "type": "HAZARD_UPDATE"}
+{"text": "Prodhan sorok e gach pore rasta somporno bondho hoye geche.", "type": "HAZARD_UPDATE"}
+{"text": "Setu te fatol dhoreche, jan cholachol jhukipurno.", "type": "HAZARD_UPDATE"}
+{"text": "Bazar elakai agun druto choriye porche.", "type": "HAZARD_UPDATE"}
+{"text": "Purono bhobon ta hele porche, jekono somoy dhoshe jete pare.", "type": "HAZARD_UPDATE"}
+{"text": "Nodir par bhangche, kkekta bari jhuki te ache.", "type": "HAZARD_UPDATE"}
+{"text": "Pahari elakai bhumidhosher jhuki bereche vari brishti te.", "type": "HAZARD_UPDATE"}
+{"text": "Gas line e leakage hoyeche, elakai gas er gondho chorache.", "type": "HAZARD_UPDATE"}
+{"text": "Current er tar chire rastay pore ache, bipojjonok obostha.", "type": "HAZARD_UPDATE"}
+{"text": "Somudro upokule ghurnijhor aghat hanar ashonka toiri hoyeche.", "type": "HAZARD_UPDATE"}
+{"text": "এই রাস্তা এখনো নিরাপদ, বিকল্প পথ হিসেবে ব্যবহার করুন।", "type": "SAFE_ROUTE"}
+{"text": "মূল সড়ক বন্ধ, পূর্ব দিকের গ্রামীণ রাস্তা দিয়ে যান।", "type": "SAFE_ROUTE"}
+{"text": "ব্রিজ পার হয়ে ডানের রাস্তাটি এখনো শুকনো ও নিরাপদ।", "type": "SAFE_ROUTE"}
+{"text": "বাজারের রাস্তা এড়িয়ে খালপাড়ের রাস্তা দিয়ে যাতায়াত করুন।", "type": "SAFE_ROUTE"}
+{"text": "উঁচু বাঁধের রাস্তা দিয়ে গেলে নিরাপদে আশ্রয়কেন্দ্রে পৌঁছাবেন।", "type": "SAFE_ROUTE"}
+{"text": "দক্ষিণের রাস্তা প্লাবিত, উত্তরের রাস্তা দিয়ে যাওয়াই ভালো।", "type": "SAFE_ROUTE"}
+{"text": "রেল লাইনের পাশের রাস্তাটি এখনো চলাচলের উপযোগী আছে।", "type": "SAFE_ROUTE"}
+{"text": "স্কুলের সামনের রাস্তা বন্ধ, পেছনের গলি দিয়ে যান।", "type": "SAFE_ROUTE"}
+{"text": "এই সেতু এখনো নিরাপদ, তবে ধীরে গাড়ি চালান।", "type": "SAFE_ROUTE"}
+{"text": "গ্রামের পশ্চিম পাশের রাস্তা শুকনো, ওই পথে যাতায়াত করুন।", "type": "SAFE_ROUTE"}
+{"text": "This road is still safe, please use it as the alternate route.", "type": "SAFE_ROUTE"}
+{"text": "The main road is closed, take the village road to the east instead.", "type": "SAFE_ROUTE"}
+{"text": "After crossing the bridge, the road to the right is dry and safe.", "type": "SAFE_ROUTE"}
+{"text": "Avoid the market road, use the canal-side road instead.", "type": "SAFE_ROUTE"}
+{"text": "Taking the embankment road will get you safely to the shelter.", "type": "SAFE_ROUTE"}
+{"text": "The southern road is submerged, the northern route is better now.", "type": "SAFE_ROUTE"}
+{"text": "The road next to the railway line is still passable.", "type": "SAFE_ROUTE"}
+{"text": "The road in front of the school is blocked, use the back lane.", "type": "SAFE_ROUTE"}
+{"text": "This bridge is still safe to cross, but drive slowly.", "type": "SAFE_ROUTE"}
+{"text": "The western village road is dry, please use that route.", "type": "SAFE_ROUTE"}
+{"text": "Ei rasta ekhono nirapod, biklo poth hishebe use korte paren.", "type": "SAFE_ROUTE"}
+{"text": "Mul sorok bondho, purbo diker gramin rasta diye jan.", "type": "SAFE_ROUTE"}
+{"text": "Bridge par hoye danerdik er rasta ekhono shukno r nirapod.", "type": "SAFE_ROUTE"}
+{"text": "Bazarer rasta erie khalparer rasta diye jatayat korun.", "type": "SAFE_ROUTE"}
+{"text": "Uncho badher rasta diye gele nirapode ashroy kendro e pouchaben.", "type": "SAFE_ROUTE"}
+{"text": "Dokkhiner rasta plabito, uttorer rasta diye jaoai bhalo.", "type": "SAFE_ROUTE"}
+{"text": "Rail liner pasher rasta ta ekhono cholachol er upojogi ache.", "type": "SAFE_ROUTE"}
+{"text": "School er samner rasta bondho, pichoner goli diye jan.", "type": "SAFE_ROUTE"}
+{"text": "Ei setu ekhono nirapod, tobe dhire gari chalan.", "type": "SAFE_ROUTE"}
+{"text": "Gramer poschim pasher rasta shukno, oi poth e jatayat korun.", "type": "SAFE_ROUTE"}
+{"text": "নির্দেশনা: এখনই এলাকা ছেড়ে নিরাপদ স্থানে চলে যান।", "type": "INSTRUCTION"}
+{"text": "পানি ফুটিয়ে পান করুন, দূষিত পানি ব্যবহার করবেন না।", "type": "INSTRUCTION"}
+{"text": "পরবর্তী নির্দেশ না আসা পর্যন্ত ঘরের ভিতরে অবস্থান করুন।", "type": "INSTRUCTION"}
+{"text": "উদ্ধারকারী দলের নির্দেশনা মেনে চলুন, নিজে থেকে ঝুঁকি নেবেন না।", "type": "INSTRUCTION"}
+{"text": "রাত আটটার পর কেউ বাইরে বের হবেন না, নিরাপত্তা নির্দেশনা জারি হয়েছে।", "type": "INSTRUCTION"}
+{"text": "ঝুঁকিপূর্ণ সেতু ব্যবহার বন্ধ রাখুন, বিকল্প পথ ব্যবহার করুন।", "type": "INSTRUCTION"}
+{"text": "প্রশাসনের নির্দেশ অনুযায়ী উপকূলীয় এলাকা খালি করুন।", "type": "INSTRUCTION"}
+{"text": "বিদ্যুতের তার স্পর্শ করবেন না, মেরামত কাজ চলছে।", "type": "INSTRUCTION"}
+{"text": "শিশু ও বৃদ্ধদের অগ্রাধিকার ভিত্তিতে আশ্রয়কেন্দ্রে পাঠান।", "type": "INSTRUCTION"}
+{"text": "দূষিত এলাকার পানি ব্যবহারের আগে বিশুদ্ধকরণ ট্যাবলেট ব্যবহার করুন।", "type": "INSTRUCTION"}
+{"text": "Official instruction: evacuate the area immediately to a safe location.", "type": "INSTRUCTION"}
+{"text": "Boil all drinking water before use, do not drink it untreated.", "type": "INSTRUCTION"}
+{"text": "Stay indoors until further official instructions are issued.", "type": "INSTRUCTION"}
+{"text": "Follow the rescue team's instructions, do not take unnecessary risks.", "type": "INSTRUCTION"}
+{"text": "A curfew is in effect after 8 PM, please stay off the roads.", "type": "INSTRUCTION"}
+{"text": "Do not use the damaged bridge, use the alternate route instead.", "type": "INSTRUCTION"}
+{"text": "Authorities have ordered evacuation of the coastal area.", "type": "INSTRUCTION"}
+{"text": "Do not touch any downed power lines, repair work is underway.", "type": "INSTRUCTION"}
+{"text": "Send children and the elderly to the shelter first.", "type": "INSTRUCTION"}
+{"text": "Use water purification tablets before drinking water from this area.", "type": "INSTRUCTION"}
+{"text": "Nirdesh: ekhoni elaka chere nirapod jaigai chole jan.", "type": "INSTRUCTION"}
+{"text": "Pani futiye pan korun, dushito pani babohar korben na.", "type": "INSTRUCTION"}
+{"text": "Porborti nirdesh na asha porjonto ghorer bhitore obosthan korun.", "type": "INSTRUCTION"}
+{"text": "Uddharkari daler nirdesh mene cholun, nije theke jhuki neben na.", "type": "INSTRUCTION"}
+{"text": "Rat aatta r por keu baire ber hoben na, security nirdesh jari hoyeche.", "type": "INSTRUCTION"}
+{"text": "Jhukipurno setu babohar bondho rakhun, biklo poth babohar korun.", "type": "INSTRUCTION"}
+{"text": "Proshashon er nirdesh onujayi upokulio elaka khali korun.", "type": "INSTRUCTION"}
+{"text": "Current er tar sporsho korben na, repair kaj cholche.", "type": "INSTRUCTION"}
+{"text": "Shishu o briddhoder odhikar bhittite ashroy kendro e pathan.", "type": "INSTRUCTION"}
+{"text": "Dushito elakar pani babohar er age purification tablet babohar korun.", "type": "INSTRUCTION"}

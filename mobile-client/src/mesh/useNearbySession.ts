@@ -11,6 +11,11 @@ import {
   type ConnectionRequest,
   type Endpoint,
 } from '../native/NearbyConnections';
+import {useLanguage} from '../i18n/LanguageContext';
+import type {
+  TranslationKey,
+  TranslationParams,
+} from '../i18n/translations';
 
 const endpointName = `Protidhoni-${Math.random().toString(36).slice(2, 8)}`;
 
@@ -65,6 +70,7 @@ function withoutKey<T>(record: Record<string, T>, key: string): Record<string, T
 
 /** Owns the Nearby session for the lifetime of the app, not the Nearby tab. */
 export function useNearbySession(): NearbySession {
+  const {t} = useLanguage();
   const [active, setActive] = useState(false);
   const [starting, setStarting] = useState(false);
   const [endpoints, setEndpoints] = useState<Record<string, string>>({});
@@ -72,7 +78,10 @@ export function useNearbySession(): NearbySession {
   const [pendingRequests, setPendingRequests] = useState<
     Record<string, { name: string; authenticationDigits: string }>
   >({});
-  const [statusMessage, setStatusMessage] = useState('Discovery stopped');
+  const [status, setStatus] = useState<{
+    key: TranslationKey;
+    params?: TranslationParams;
+  }>({key: 'nearby.status.stopped'});
   const peerNames = useRef<Record<string, string>>({});
 
   const clearTransientPeer = useCallback((endpointId: string) => {
@@ -106,31 +115,36 @@ export function useNearbySession(): NearbySession {
             authenticationDigits: request.authenticationDigits,
           },
         }));
-        setStatusMessage(`Confirm the connection with ${request.name}.`);
+        setStatus({key: 'nearby.status.confirm', params: {name: request.name}});
       },
     );
     const connected = NearbyConnections.onConnected(({ endpointId }) => {
-      const name = peerNames.current[endpointId] ?? `Peer ${endpointId.slice(0, 8)}`;
+      const name =
+        peerNames.current[endpointId] ??
+        endpointId.slice(0, 8);
       setActive(true);
       setConnectedPeers(current => ({ ...current, [endpointId]: name }));
       setPendingRequests(current => withoutKey(current, endpointId));
-      setStatusMessage(`Connected to ${name}.`);
+      setStatus({key: 'nearby.status.connected', params: {name}});
     });
     const disconnected = NearbyConnections.onDisconnected(({ endpointId }) => {
-      const name = peerNames.current[endpointId] ?? 'peer';
+      const name = peerNames.current[endpointId] ?? endpointId.slice(0, 8);
       setConnectedPeers(current => withoutKey(current, endpointId));
       setPendingRequests(current => withoutKey(current, endpointId));
-      setStatusMessage(`Disconnected from ${name}. Discovery is still running.`);
+      setStatus({key: 'nearby.status.disconnected', params: {name}});
     });
     const connectionFailed = NearbyConnections.onConnectionFailed(
       ({ endpointId, statusCode }) => {
-        const name = peerNames.current[endpointId] ?? 'peer';
+        const name = peerNames.current[endpointId] ?? endpointId.slice(0, 8);
         clearTransientPeer(endpointId);
         setConnectedPeers(current => withoutKey(current, endpointId));
-        setStatusMessage(
+        setStatus(
           statusCode === 8011
-            ? `${name} was no longer available. Discovery will retry when it reappears.`
-            : `Could not connect to ${name} (status ${statusCode}).`,
+            ? {key: 'nearby.status.stale', params: {name}}
+            : {
+                key: 'nearby.status.failed',
+                params: {name, status: statusCode},
+              },
         );
       },
     );
@@ -153,23 +167,28 @@ export function useNearbySession(): NearbySession {
     try {
       if (!(await requestNearbyPermissions())) {
         Alert.alert(
-          'Permission needed',
-          'Nearby discovery cannot start until all requested nearby-device permissions are allowed.',
+          t('nearby.permission.title'),
+          t('nearby.permission.message'),
         );
         return;
       }
       await NearbyConnections.start(endpointName);
       setActive(true);
-      setStatusMessage(`Advertising as ${endpointName}.`);
+      setStatus({
+        key: 'nearby.status.advertising',
+        params: {name: endpointName},
+      });
     } catch (error) {
       Alert.alert(
-        'Nearby unavailable',
-        error instanceof Error ? error.message : 'Unable to start discovery.',
+        t('nearby.unavailable.title'),
+        error instanceof Error
+          ? `${t('nearby.unavailable.message')}\n${error.message}`
+          : t('nearby.unavailable.message'),
       );
     } finally {
       setStarting(false);
     }
-  }, [active, starting]);
+  }, [active, starting, t]);
 
   const stop = useCallback(async () => {
     try {
@@ -181,7 +200,7 @@ export function useNearbySession(): NearbySession {
       setPendingRequests({});
       setActive(false);
       setStarting(false);
-      setStatusMessage('Discovery stopped');
+      setStatus({key: 'nearby.status.stopped'});
     }
   }, []);
 
@@ -189,17 +208,19 @@ export function useNearbySession(): NearbySession {
     setPendingRequests(current => withoutKey(current, endpointId));
     try {
       await NearbyConnections.respondToConnection(endpointId, accept);
-      if (!accept) setStatusMessage('Connection request declined.');
+      if (!accept) setStatus({key: 'nearby.status.declined'});
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       Alert.alert(
-        'Peer no longer available',
+        t('nearby.peerUnavailable.title'),
         message.includes('8011') || message.includes('STATUS_ENDPOINT_UNKNOWN')
-          ? 'The other phone stopped advertising or moved out of range. Keep discovery running on both phones and try again.'
-          : `Could not respond to the connection request: ${message}`,
+          ? t('nearby.peerUnavailable.stale')
+          : t('nearby.peerUnavailable.failed', {message}),
       );
     }
-  }, []);
+  }, [t]);
+
+  const statusMessage = t(status.key, status.params);
 
   return useMemo(
     () => ({

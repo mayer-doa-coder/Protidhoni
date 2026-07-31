@@ -7,8 +7,6 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Text,
-  TextInput,
   View,
 } from 'react-native';
 
@@ -18,10 +16,13 @@ import {getAppDatabase} from '../db/appDatabase';
 import {enqueueReport} from '../db/queue';
 import {
   getReportFormConfig,
-  REPORT_FORM_CONFIGS,
+  getReportFormConfigs,
   type CreatableReportType,
 } from '../forms/reportFormConfig';
 import {buildReportDraft, type FormLocationInput} from '../forms/reportFormModel';
+import {useLanguage} from '../i18n/LanguageContext';
+import {AppText, AppTextInput} from '../ui/AppText';
+import {fontFamilyForLanguage} from '../ui/typography';
 
 async function requestLocationPermission(): Promise<boolean> {
   if (Platform.OS !== 'android') return true;
@@ -34,8 +35,8 @@ export function ReportFormScreen({
 }: {
   onReportQueued?: (report: CrisisReport) => Promise<number>;
 } = {}) {
+  const {formatNumber, language, setLanguage, t} = useLanguage();
   const [reportType, setReportType] = useState<CreatableReportType>('SOS');
-  const [language, setLanguage] = useState<'bn' | 'en'>('bn');
   const [text, setText] = useState('');
   const [peopleCount, setPeopleCount] = useState('');
   const [needs, setNeeds] = useState<ReadonlySet<string>>(new Set());
@@ -45,7 +46,11 @@ export function ReportFormScreen({
   const [submitting, setSubmitting] = useState(false);
   const submissionInFlight = useRef(false);
   const [lastSavedId, setLastSavedId] = useState<string | null>(null);
-  const config = useMemo(() => getReportFormConfig(reportType), [reportType]);
+  const formConfigs = useMemo(() => getReportFormConfigs(language), [language]);
+  const config = useMemo(
+    () => getReportFormConfig(reportType, language),
+    [language, reportType],
+  );
 
   const selectReportType = (nextType: CreatableReportType) => {
     setReportType(nextType);
@@ -65,7 +70,10 @@ export function ReportFormScreen({
   const acquireGpsLocation = async () => {
     try {
       if (!(await requestLocationPermission())) {
-        Alert.alert('Permission needed', 'Location permission was not granted.');
+        Alert.alert(
+          t('report.permission.title'),
+          t('report.permission.locationDenied'),
+        );
         return;
       }
       Geolocation.getCurrentPosition(
@@ -77,13 +85,15 @@ export function ReportFormScreen({
             accuracyM: position.coords.accuracy,
           });
         },
-        error => Alert.alert('Location unavailable', error.message),
+        error => Alert.alert(t('report.locationUnavailable.title'), error.message),
         {enableHighAccuracy: true, timeout: 15000},
       );
     } catch (error) {
       Alert.alert(
-        'Location permission unavailable',
-        error instanceof Error ? error.message : 'Android could not complete the permission request.',
+        t('report.locationPermissionUnavailable.title'),
+        error instanceof Error
+          ? error.message
+          : t('report.locationPermissionUnavailable.message'),
       );
     }
   };
@@ -94,14 +104,17 @@ export function ReportFormScreen({
       location.source === 'manual'
         ? {source: 'manual', lat: manualLat, lng: manualLng}
         : location;
-    const result = buildReportDraft({
-      type: reportType,
+    const result = buildReportDraft(
+      {
+        type: reportType,
+        language,
+        text,
+        peopleCount,
+        needs: [...needs],
+        location: locationInput,
+      },
       language,
-      text,
-      peopleCount,
-      needs: [...needs],
-      location: locationInput,
-    });
+    );
     if (!result.ok) {
       Alert.alert(result.error.title, result.error.message);
       return;
@@ -114,14 +127,22 @@ export function ReportFormScreen({
       const db = await getAppDatabase();
       const outcome = await enqueueReport(db, report);
       if (outcome !== 'inserted') {
-        throw new Error('The generated report identifier already exists in the local queue.');
+        throw new Error(t('report.duplicate'));
       }
 
       const relayedPeerCount = await onReportQueued?.(report) ?? 0;
       setLastSavedId(
         relayedPeerCount > 0
-          ? `${report.message_id} • relayed to ${relayedPeerCount} peer${relayedPeerCount === 1 ? '' : 's'}`
-          : `${report.message_id} • waiting for a peer`,
+          ? t(
+              relayedPeerCount === 1
+                ? 'report.relayedDetails'
+                : 'report.relayedDetailsPlural',
+              {
+                id: report.message_id,
+                count: formatNumber(relayedPeerCount),
+              },
+            )
+          : t('report.waitingDetails', {id: report.message_id}),
       );
       setText('');
       setPeopleCount('');
@@ -130,13 +151,26 @@ export function ReportFormScreen({
       setManualLat('');
       setManualLng('');
       Alert.alert(
-        relayedPeerCount > 0 ? 'Report saved and relayed' : 'Report saved offline',
         relayedPeerCount > 0
-          ? `${config.label} is safely stored on this phone and was relayed to ${relayedPeerCount} connected peer${relayedPeerCount === 1 ? '' : 's'}.`
-          : `${config.label} is queued on this phone and will relay automatically when a peer connects.`,
+          ? t('report.alert.relayedTitle')
+          : t('report.alert.offlineTitle'),
+        relayedPeerCount > 0
+          ? t(
+              relayedPeerCount === 1
+                ? 'report.alert.relayed'
+                : 'report.alert.relayedPlural',
+              {
+                type: config.label,
+                count: formatNumber(relayedPeerCount),
+              },
+            )
+          : t('report.alert.offline', {type: config.label}),
       );
     } catch (error) {
-      Alert.alert('Could not save report', error instanceof Error ? error.message : 'Unknown error.');
+      Alert.alert(
+        t('report.saveFailed.title'),
+        error instanceof Error ? error.message : t('report.unknownError'),
+      );
     } finally {
       submissionInFlight.current = false;
       setSubmitting(false);
@@ -148,14 +182,12 @@ export function ReportFormScreen({
       style={styles.page}
       contentContainerStyle={styles.content}
       keyboardShouldPersistTaps="handled">
-      <Text style={styles.title}>Create report</Text>
-      <Text style={styles.offlineHelper}>
-        Saved locally first. Internet is not required to create or queue a report.
-      </Text>
+      <AppText style={styles.title}>{t('report.title')}</AppText>
+      <AppText style={styles.offlineHelper}>{t('report.offlineHelp')}</AppText>
 
-      <Text style={styles.label}>Report type</Text>
+      <AppText style={styles.label}>{t('report.type')}</AppText>
       <View style={styles.choiceRow}>
-        {REPORT_FORM_CONFIGS.map(item => (
+        {formConfigs.map(item => (
           <Pressable
             key={item.type}
             accessibilityRole="button"
@@ -163,19 +195,19 @@ export function ReportFormScreen({
             onPress={() => selectReportType(item.type)}
             style={[styles.choiceChip, reportType === item.type && styles.choiceChipSelected]}
             testID={`report-type-${item.type}`}>
-            <Text style={reportType === item.type ? styles.choiceTextSelected : styles.choiceText}>
+            <AppText style={reportType === item.type ? styles.choiceTextSelected : styles.choiceText}>
               {item.shortLabel}
-            </Text>
+            </AppText>
           </Pressable>
         ))}
       </View>
 
       <View style={styles.formHeading}>
-        <Text style={styles.formTitle}>{config.label}</Text>
-        <Text style={styles.formHelper}>{config.helper}</Text>
+        <AppText style={styles.formTitle}>{config.label}</AppText>
+        <AppText style={styles.formHelper}>{config.helper}</AppText>
       </View>
 
-      <Text style={styles.label}>Language</Text>
+      <AppText style={styles.label}>{t('language.label')}</AppText>
       <View style={styles.choiceRow}>
         {([
           ['bn', 'বাংলা'],
@@ -188,13 +220,21 @@ export function ReportFormScreen({
             onPress={() => setLanguage(value)}
             style={[styles.choiceChip, language === value && styles.choiceChipSelected]}
             testID={`report-language-${value}`}>
-            <Text style={language === value ? styles.choiceTextSelected : styles.choiceText}>{label}</Text>
+            <AppText
+              style={[
+                language === value
+                  ? styles.choiceTextSelected
+                  : styles.choiceText,
+                {fontFamily: fontFamilyForLanguage(value)},
+              ]}>
+              {label}
+            </AppText>
           </Pressable>
         ))}
       </View>
 
-      <Text style={styles.label}>{config.descriptionLabel}</Text>
-      <TextInput
+      <AppText style={styles.label}>{config.descriptionLabel}</AppText>
+      <AppTextInput
         style={styles.textArea}
         multiline
         placeholder={config.descriptionPlaceholder}
@@ -204,18 +244,18 @@ export function ReportFormScreen({
         testID="report-description-input"
       />
 
-      <Text style={styles.label}>{config.peopleCountLabel}</Text>
-      <TextInput
+      <AppText style={styles.label}>{config.peopleCountLabel}</AppText>
+      <AppTextInput
         style={styles.input}
         keyboardType="number-pad"
         value={peopleCount}
         onChangeText={setPeopleCount}
-        placeholder="e.g. 3"
+        placeholder={t('report.people.placeholder')}
         maxLength={6}
         testID="report-people-count-input"
       />
 
-      <Text style={styles.label}>{config.needsLabel}</Text>
+      <AppText style={styles.label}>{config.needsLabel}</AppText>
       <View style={styles.choiceRow}>
         {config.needs.map(need => (
           <Pressable
@@ -225,14 +265,14 @@ export function ReportFormScreen({
             onPress={() => toggleNeed(need.value)}
             style={[styles.choiceChip, needs.has(need.value) && styles.needChipSelected]}
             testID={`report-need-${need.value}`}>
-            <Text style={needs.has(need.value) ? styles.choiceTextSelected : styles.choiceText}>
+            <AppText style={needs.has(need.value) ? styles.choiceTextSelected : styles.choiceText}>
               {need.label}
-            </Text>
+            </AppText>
           </Pressable>
         ))}
       </View>
 
-      <Text style={styles.label}>Location</Text>
+      <AppText style={styles.label}>{t('report.location')}</AppText>
       <View style={styles.choiceRow}>
         <Pressable
           accessibilityRole="button"
@@ -243,7 +283,7 @@ export function ReportFormScreen({
             void acquireGpsLocation();
           }}
           testID="report-location-gps">
-          <Text style={styles.locationButtonText}>Use GPS</Text>
+          <AppText style={styles.locationButtonText}>{t('report.location.gps')}</AppText>
         </Pressable>
         <Pressable
           accessibilityRole="button"
@@ -251,7 +291,7 @@ export function ReportFormScreen({
           style={[styles.locationButton, location.source === 'manual' && styles.locationButtonSelected]}
           onPress={() => setLocation({source: 'manual', lat: manualLat, lng: manualLng})}
           testID="report-location-manual">
-          <Text style={styles.locationButtonText}>Enter manually</Text>
+          <AppText style={styles.locationButtonText}>{t('report.location.manual')}</AppText>
         </Pressable>
         <Pressable
           accessibilityRole="button"
@@ -259,28 +299,32 @@ export function ReportFormScreen({
           style={[styles.locationButton, location.source === 'none' && styles.locationButtonSelected]}
           onPress={() => setLocation({source: 'none'})}
           testID="report-location-none">
-          <Text style={styles.locationButtonText}>No location</Text>
+          <AppText style={styles.locationButtonText}>{t('report.location.none')}</AppText>
         </Pressable>
       </View>
       {location.source === 'gps' && (
-        <Text style={styles.locationSummary}>
-          GPS: {location.lat.toFixed(5)}, {location.lng.toFixed(5)} (±{location.accuracyM.toFixed(0)}m)
-        </Text>
+        <AppText style={styles.locationSummary}>
+          {t('report.location.gpsSummary', {
+            lat: formatNumber(location.lat),
+            lng: formatNumber(location.lng),
+            accuracy: formatNumber(location.accuracyM),
+          })}
+        </AppText>
       )}
       {location.source === 'manual' && (
         <View style={styles.manualLocationRow}>
-          <TextInput
+          <AppTextInput
             style={styles.manualInput}
-            placeholder="Latitude"
+            placeholder={t('report.location.latitude')}
             keyboardType="numbers-and-punctuation"
             value={manualLat}
             onChangeText={setManualLat}
             maxLength={16}
             testID="report-manual-lat-input"
           />
-          <TextInput
+          <AppTextInput
             style={styles.manualInput}
-            placeholder="Longitude"
+            placeholder={t('report.location.longitude')}
             keyboardType="numbers-and-punctuation"
             value={manualLng}
             onChangeText={setManualLng}
@@ -289,7 +333,11 @@ export function ReportFormScreen({
           />
         </View>
       )}
-      {location.source === 'none' && <Text style={styles.locationSummary}>No location will be attached.</Text>}
+      {location.source === 'none' && (
+        <AppText style={styles.locationSummary}>
+          {t('report.location.noneAttached')}
+        </AppText>
+      )}
 
       <Pressable
         accessibilityRole="button"
@@ -300,9 +348,17 @@ export function ReportFormScreen({
         }}
         disabled={submitting}
         testID="report-submit-button">
-        <Text style={styles.submitButtonText}>{submitting ? 'Saving…' : `Save ${config.shortLabel}`}</Text>
+        <AppText style={styles.submitButtonText}>
+          {submitting
+            ? t('report.saving')
+            : t('report.save', {type: config.shortLabel})}
+        </AppText>
       </Pressable>
-      {lastSavedId && <Text style={styles.confirmation}>Saved locally: {lastSavedId}</Text>}
+      {lastSavedId && (
+        <AppText style={styles.confirmation}>
+          {t('report.savedLocally', {details: lastSavedId})}
+        </AppText>
+      )}
     </ScrollView>
   );
 }

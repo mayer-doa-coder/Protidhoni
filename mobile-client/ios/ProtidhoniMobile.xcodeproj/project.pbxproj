@@ -11,6 +11,8 @@
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		761780ED2CA45674006654EE /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 761780EC2CA45674006654EE /* AppDelegate.swift */; };
 		81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
+		A11E00012CA0000100000001 /* AnekBangla.ttf in Resources */ = {isa = PBXBuildFile; fileRef = A11E00022CA0000100000001 /* AnekBangla.ttf */; };
+		A11E00032CA0000100000001 /* AnekLatin.ttf in Resources */ = {isa = PBXBuildFile; fileRef = A11E00042CA0000100000001 /* AnekLatin.ttf */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -24,6 +26,8 @@
 		761780EC2CA45674006654EE /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = ProtidhoniMobile/AppDelegate.swift; sourceTree = "<group>"; };
 		81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = ProtidhoniMobile/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
+		A11E00022CA0000100000001 /* AnekBangla.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = AnekBangla.ttf; path = ProtidhoniMobile/Fonts/AnekBangla.ttf; sourceTree = "<group>"; };
+		A11E00042CA0000100000001 /* AnekLatin.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = AnekLatin.ttf; path = ProtidhoniMobile/Fonts/AnekLatin.ttf; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -41,6 +45,8 @@
 		13B07FAE1A68108700A75B9A /* ProtidhoniMobile */ = {
 			isa = PBXGroup;
 			children = (
+				A11E00022CA0000100000001 /* AnekBangla.ttf */,
+				A11E00042CA0000100000001 /* AnekLatin.ttf */,
 				13B07FB51A68108700A75B9A /* Images.xcassets */,
 				761780EC2CA45674006654EE /* AppDelegate.swift */,
 				13B07FB61A68108700A75B9A /* Info.plist */,
@@ -157,6 +163,8 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A11E00012CA0000100000001 /* AnekBangla.ttf in Resources */,
+				A11E00032CA0000100000001 /* AnekLatin.ttf in Resources */,
 				81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 			);

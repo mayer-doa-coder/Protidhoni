@@ -3,12 +3,11 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Text,
-  TextInput,
   View,
 } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
+import type { MapMark } from './src/contracts/mark';
 import type { CrisisReport } from './src/contracts/report';
 import { getAppDatabase } from './src/db/appDatabase';
 import { startMeshRelay, type MeshRelayController } from './src/mesh/relay';
@@ -16,16 +15,25 @@ import {
   useNearbySession,
   type NearbySession,
 } from './src/mesh/useNearbySession';
+import { ChatScreen } from './src/screens/ChatScreen';
+import { MapScreen } from './src/screens/MapScreen';
 import { MyReportsScreen } from './src/screens/MyReportsScreen';
 import { ReportFormScreen } from './src/screens/ReportFormScreen';
 import { startAutoSync } from './src/sync/sync';
 import {
+  BackendOriginError,
   defaultBackendOrigin,
   loadBackendOrigin,
   saveBackendOrigin,
 } from './src/config/backend';
+import {
+  LanguageProvider,
+  useLanguage,
+} from './src/i18n/LanguageContext';
+import {AppText, AppTextInput} from './src/ui/AppText';
+import {fontFamilyForLanguage} from './src/ui/typography';
 
-type Tab = 'create' | 'reports' | 'mesh';
+type Tab = 'create' | 'reports' | 'map' | 'chat' | 'mesh';
 
 function TabButton({
   label,
@@ -45,10 +53,59 @@ function TabButton({
       testID={testID}
       style={[styles.tabButton, active && styles.tabButtonActive]}
     >
-      <Text style={active ? styles.tabLabelActive : styles.tabLabel}>
+      <AppText style={active ? styles.tabLabelActive : styles.tabLabel}>
         {label}
-      </Text>
+      </AppText>
     </Pressable>
+  );
+}
+
+function LanguageToggle() {
+  const {language, setLanguage, t} = useLanguage();
+  return (
+    <View style={styles.languageBar}>
+      <AppText style={styles.languageLabel}>{t('language.label')}</AppText>
+      <View style={styles.languageChoices}>
+        <Pressable
+          accessibilityLabel={t('language.switchToBangla')}
+          accessibilityRole="button"
+          accessibilityState={{selected: language === 'bn'}}
+          onPress={() => setLanguage('bn')}
+          style={[
+            styles.languageButton,
+            language === 'bn' && styles.languageButtonActive,
+          ]}
+          testID="app-language-bn">
+          <AppText
+            style={[
+              styles.languageButtonText,
+              language === 'bn' && styles.languageButtonTextActive,
+              {fontFamily: fontFamilyForLanguage('bn')},
+            ]}>
+            বাংলা
+          </AppText>
+        </Pressable>
+        <Pressable
+          accessibilityLabel={t('language.switchToEnglish')}
+          accessibilityRole="button"
+          accessibilityState={{selected: language === 'en'}}
+          onPress={() => setLanguage('en')}
+          style={[
+            styles.languageButton,
+            language === 'en' && styles.languageButtonActive,
+          ]}
+          testID="app-language-en">
+          <AppText
+            style={[
+              styles.languageButtonText,
+              language === 'en' && styles.languageButtonTextActive,
+              {fontFamily: fontFamilyForLanguage('en')},
+            ]}>
+            English
+          </AppText>
+        </Pressable>
+      </View>
+    </View>
   );
 }
 
@@ -61,8 +118,11 @@ function MeshScreen({
   onApiBaseUrlChange: (value: string) => void;
   nearby: NearbySession;
 }) {
+  const {formatNumber, t} = useLanguage();
   const [backendDraft, setBackendDraft] = useState(apiBaseUrl);
-  const [backendFeedback, setBackendFeedback] = useState('');
+  const [backendFeedback, setBackendFeedback] = useState<
+    {kind: 'saved'} | {kind: 'error'; message?: string} | null
+  >(null);
   const endpointList = useMemo(
     () => Object.entries(nearby.endpoints),
     [nearby.endpoints],
@@ -82,11 +142,15 @@ function MeshScreen({
     try {
       const saved = await saveBackendOrigin(backendDraft);
       onApiBaseUrlChange(saved);
-      setBackendFeedback('Saved. Queue sync now uses this backend.');
+      setBackendFeedback({kind: 'saved'});
     } catch (error) {
-      setBackendFeedback(
-        error instanceof Error ? error.message : 'Could not save the backend URL.',
-      );
+      setBackendFeedback({
+        kind: 'error',
+        message:
+          error instanceof BackendOriginError
+            ? t(`mesh.backend.${error.reasonKey}`)
+            : undefined,
+      });
     }
   };
 
@@ -98,20 +162,13 @@ function MeshScreen({
   return (
     <ScrollView contentContainerStyle={styles.meshPage} keyboardShouldPersistTaps="handled">
       <View style={styles.card}>
-        <Text style={styles.title}>Protidhoni</Text>
-        <Text style={styles.subtitle}>Offline peer mesh</Text>
-        <Text style={styles.detail}>
-          Advertises and discovers nearby devices, and requests a connection to
-          each one found. Every incoming connection request waits below for you
-          to accept or decline before any payload is exchanged.
-        </Text>
-        <Text style={styles.heading}>Backend connection</Text>
-        <Text style={styles.detail}>
-          Emulator: http://10.0.2.2:8000. On a real phone, use this computer&apos;s
-          LAN IP.
-        </Text>
-        <TextInput
-          accessibilityLabel="Backend URL"
+        <AppText style={styles.title}>{t('mesh.title')}</AppText>
+        <AppText style={styles.subtitle}>{t('mesh.subtitle')}</AppText>
+        <AppText style={styles.detail}>{t('mesh.description')}</AppText>
+        <AppText style={styles.heading}>{t('mesh.backend.heading')}</AppText>
+        <AppText style={styles.detail}>{t('mesh.backend.help')}</AppText>
+        <AppTextInput
+          accessibilityLabel={t('mesh.backend.url')}
           autoCapitalize="none"
           autoCorrect={false}
           keyboardType="url"
@@ -126,10 +183,14 @@ function MeshScreen({
           style={styles.secondaryButton}
           testID="save-backend-url"
         >
-          <Text style={styles.buttonText}>Save backend URL</Text>
+          <AppText style={styles.buttonText}>{t('mesh.backend.save')}</AppText>
         </Pressable>
         {backendFeedback ? (
-          <Text style={styles.status}>{backendFeedback}</Text>
+          <AppText style={styles.status}>
+            {backendFeedback.kind === 'saved'
+              ? t('mesh.backend.saved')
+              : backendFeedback.message ?? t('mesh.backend.saveFailed')}
+          </AppText>
         ) : null}
         <Pressable
           accessibilityRole="button"
@@ -140,30 +201,34 @@ function MeshScreen({
           disabled={nearby.starting}
           style={[styles.button, nearby.starting && styles.buttonDisabled]}
         >
-          <Text style={styles.buttonText}>
+          <AppText style={styles.buttonText}>
             {nearby.starting
-              ? 'Starting nearby…'
+              ? t('mesh.starting')
               : nearby.active
-                ? 'Stop discovery'
-                : 'Start nearby discovery'}
-          </Text>
+                ? t('mesh.stop')
+                : t('mesh.start')}
+          </AppText>
         </Pressable>
-        <Text style={styles.status} testID="nearby-session-detail">
+        <AppText style={styles.status} testID="nearby-session-detail">
           {nearby.statusMessage}
-        </Text>
+        </AppText>
         {pendingRequestList.length > 0 && (
           <View style={styles.requestSection}>
-            <Text style={styles.heading}>
-              Connection requests ({pendingRequestList.length})
-            </Text>
+            <AppText style={styles.heading}>
+              {t('mesh.requests', {
+                count: formatNumber(pendingRequestList.length),
+              })}
+            </AppText>
             {pendingRequestList.map(([endpointId, request]) => (
               <View key={endpointId} style={styles.requestRow}>
-                <Text style={styles.requestName}>
-                  Connect with {request.name}?
-                </Text>
-                <Text style={styles.authDigits}>
-                  Confirm digits: {request.authenticationDigits}
-                </Text>
+                <AppText style={styles.requestName}>
+                  {t('mesh.connectQuestion', {name: request.name})}
+                </AppText>
+                <AppText style={styles.authDigits}>
+                  {t('mesh.confirmDigits', {
+                    digits: request.authenticationDigits,
+                  })}
+                </AppText>
                 <View style={styles.requestActions}>
                   <Pressable
                     accessibilityRole="button"
@@ -174,7 +239,9 @@ function MeshScreen({
                     }}
                     style={[styles.requestButton, styles.acceptButton]}
                   >
-                    <Text style={styles.requestButtonText}>Accept</Text>
+                    <AppText style={styles.requestButtonText}>
+                      {t('mesh.accept')}
+                    </AppText>
                   </Pressable>
                   <Pressable
                     accessibilityRole="button"
@@ -185,42 +252,50 @@ function MeshScreen({
                     }}
                     style={[styles.requestButton, styles.declineButton]}
                   >
-                    <Text style={styles.requestButtonText}>Decline</Text>
+                    <AppText style={styles.requestButtonText}>
+                      {t('mesh.decline')}
+                    </AppText>
                   </Pressable>
                 </View>
               </View>
             ))}
           </View>
         )}
-        <Text style={styles.heading} testID="connected-peer-count">
-          Connected peers ({connectedPeerList.length})
-        </Text>
+        <AppText style={styles.heading} testID="connected-peer-count">
+          {t('mesh.connectedPeers', {
+            count: formatNumber(connectedPeerList.length),
+          })}
+        </AppText>
         {connectedPeerList.length === 0 ? (
-          <Text style={styles.status}>No active peer connections.</Text>
+          <AppText style={styles.status}>{t('mesh.noConnections')}</AppText>
         ) : (
           connectedPeerList.map(([id, name]) => (
-            <Text key={id} style={styles.connectedPeer}>
+            <AppText key={id} style={styles.connectedPeer}>
               ● {name}
-            </Text>
+            </AppText>
           ))
         )}
-        <Text style={styles.heading}>
-          Devices in range ({endpointList.length})
-        </Text>
+        <AppText style={styles.heading}>
+          {t('mesh.devicesInRange', {
+            count: formatNumber(endpointList.length),
+          })}
+        </AppText>
         {endpointList.map(([id, name]) => (
-          <Text key={id} style={styles.endpoint}>
+          <AppText key={id} style={styles.endpoint}>
             {name}
-          </Text>
+          </AppText>
         ))}
       </View>
     </ScrollView>
   );
 }
 
-function App() {
+function AppContent() {
+  const {formatNumber, t} = useLanguage();
   const [tab, setTab] = useState<Tab>('create');
   const [apiBaseUrl, setApiBaseUrl] = useState(defaultBackendOrigin);
   const [reportsRevision, setReportsRevision] = useState(0);
+  const [marksRevision, setMarksRevision] = useState(0);
   const nearby = useNearbySession();
   const relayRef = useRef<MeshRelayController | null>(null);
   const relayReadyRef = useRef<Promise<MeshRelayController | null> | null>(null);
@@ -232,6 +307,7 @@ function App() {
       if (cancelled) return null;
       const relay = startMeshRelay(db, () => {
         setReportsRevision(current => current + 1);
+        setMarksRevision(current => current + 1);
       });
       relayRef.current = relay;
       return relay;
@@ -253,6 +329,11 @@ function App() {
     },
     [],
   );
+
+  const relayNewMark = useCallback(async (mark: MapMark): Promise<number> => {
+    const relay = relayRef.current ?? (await relayReadyRef.current);
+    return relay?.relayMark(mark) ?? 0;
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -283,21 +364,34 @@ function App() {
   return (
     <SafeAreaProvider>
       <SafeAreaView style={styles.page}>
+        <LanguageToggle />
         <View style={styles.tabBar}>
           <TabButton
-            label="Create"
+            label={t('tab.create')}
             active={tab === 'create'}
             onPress={() => setTab('create')}
             testID="tab-create"
           />
           <TabButton
-            label="My reports"
+            label={t('tab.reports')}
             active={tab === 'reports'}
             onPress={() => setTab('reports')}
             testID="tab-reports"
           />
           <TabButton
-            label="Nearby"
+            label={t('tab.map')}
+            active={tab === 'map'}
+            onPress={() => setTab('map')}
+            testID="tab-map"
+          />
+          <TabButton
+            label={t('tab.chat')}
+            active={tab === 'chat'}
+            onPress={() => setTab('chat')}
+            testID="tab-chat"
+          />
+          <TabButton
+            label={t('tab.nearby')}
             active={tab === 'mesh'}
             onPress={() => setTab('mesh')}
             testID="tab-mesh"
@@ -314,14 +408,20 @@ function App() {
           ]}
           testID="global-connection-status"
         >
-          <Text style={styles.connectionBannerText}>
+          <AppText style={styles.connectionBannerText}>
             {nearby.active
-              ? `Nearby active • ${connectedCount(nearby)} connected`
-              : 'Nearby is off'}
-          </Text>
+              ? t('connection.active', {
+                  count: formatNumber(connectedCount(nearby)),
+                })
+              : t('connection.off')}
+          </AppText>
         </View>
         {tab === 'create' && <ReportFormScreen onReportQueued={relayNewReport} />}
         {tab === 'reports' && <MyReportsScreen refreshToken={reportsRevision} />}
+        {tab === 'map' && (
+          <MapScreen marksRevision={marksRevision} onMarkCreated={relayNewMark} />
+        )}
+        {tab === 'chat' && <ChatScreen />}
         {tab === 'mesh' && (
           <MeshScreen
             apiBaseUrl={apiBaseUrl}
@@ -334,12 +434,39 @@ function App() {
   );
 }
 
+function App() {
+  return (
+    <LanguageProvider>
+      <AppContent />
+    </LanguageProvider>
+  );
+}
+
 function connectedCount(nearby: NearbySession): number {
   return Object.keys(nearby.connectedPeers).length;
 }
 
 const styles = StyleSheet.create({
   page: { flex: 1, backgroundColor: '#071a2c' },
+  languageBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingTop: 10,
+  },
+  languageLabel: {color: '#dbe4ee', fontWeight: '700'},
+  languageChoices: {
+    flexDirection: 'row',
+    backgroundColor: '#12283f',
+    borderRadius: 18,
+    padding: 2,
+  },
+  languageButton: {borderRadius: 16, paddingHorizontal: 12, paddingVertical: 5},
+  languageButtonActive: {backgroundColor: '#f8fafc'},
+  languageButtonText: {color: '#b8c7d9', fontWeight: '600'},
+  languageButtonTextActive: {color: '#071a2c', fontWeight: '800'},
   tabBar: { flexDirection: 'row', gap: 8, padding: 12 },
   tabButton: {
     flex: 1,

@@ -18,6 +18,7 @@ jest.mock('@op-engineering/op-sqlite', () => ({
 jest.mock('../../native/KeystoreWrap');
 
 import {REPORT_FORM_CONFIGS} from '../../forms/reportFormConfig';
+import {LanguageProvider} from '../../i18n/LanguageContext';
 import {ReportFormScreen} from '../ReportFormScreen';
 
 test('renders every configured report type from the reusable form', async () => {
@@ -37,6 +38,30 @@ test('renders every configured report type from the reusable form', async () => 
       expect(renderer!.root.findByProps({testID: `report-need-${need.value}`})).toBeDefined();
     }
   }
+
+  await act(async () => renderer!.unmount());
+});
+
+test('the form language control translates all configuration-driven labels', async () => {
+  let renderer: ReactTestRenderer | undefined;
+  await act(async () => {
+    renderer = create(
+      <LanguageProvider>
+        <ReportFormScreen />
+      </LanguageProvider>,
+    );
+  });
+
+  await act(async () => {
+    renderer!.root.findByProps({testID: 'report-language-bn'}).props.onPress();
+  });
+
+  const visibleText = renderer!.root
+    .findAll(node => typeof node.props.children === 'string')
+    .map(node => node.props.children);
+  expect(visibleText).toContain('প্রতিবেদন তৈরি করুন');
+  expect(visibleText).toContain('জরুরি এসওএস');
+  expect(visibleText).toContain('উদ্ধার');
 
   await act(async () => renderer!.unmount());
 });

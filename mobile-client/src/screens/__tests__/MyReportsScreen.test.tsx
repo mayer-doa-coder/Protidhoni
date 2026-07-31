@@ -100,12 +100,12 @@ test('shows report type, timestamp, sync state, and rejection feedback', async (
     expect(text).toContain('relayed');
     expect(
       renderer!.root.findByProps({testID: 'report-created-11111111-1111-4111-8111-111111111111'})
-        .props.children[0],
-    ).toBe('Created ');
+        .props.children,
+    ).toContain('Created ');
     expect(
       renderer!.root.findByProps({testID: 'report-delivery-11111111-1111-4111-8111-111111111111'})
         .props.children,
-    ).toContain('server rejected');
+    ).toContain('Rejected by the server');
   } finally {
     await act(async () => renderer!.unmount());
   }

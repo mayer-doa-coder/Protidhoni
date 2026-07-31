@@ -43,10 +43,20 @@ services:
   ai-service:
     build:
       context: ./ai-service
+      args:
+        # Set INSTALL_AI_MODEL_EXTRAS=true in .env to bundle torch/transformers
+        # and actually serve the fine-tuned BanglaBERT checkpoint below.
+        INSTALL_MODEL_EXTRAS: ${INSTALL_AI_MODEL_EXTRAS:-false}
     environment:
       PROTIDHONI_AI_INTERNAL_TOKEN: ${AI_INTERNAL_TOKEN:?Set AI_INTERNAL_TOKEN in .env}
       PROTIDHONI_TRANSLATION_BASE_URL: ${TRANSLATION_BASE_URL:?Set TRANSLATION_BASE_URL in .env}
       PROTIDHONI_TRANSLATION_API_KEY: ${TRANSLATION_API_KEY:-}
+      # Blank (default) keeps the transparent rules classifier active. Point
+      # this at a local fine-tuned checkpoint directory to serve BanglaBERT
+      # instead; see ai-service/README.md. Requires INSTALL_AI_MODEL_EXTRAS=true.
+      PROTIDHONI_FINE_TUNED_MODEL_PATH: ${AI_FINE_TUNED_MODEL_PATH:-}
+    volumes:
+      - ${AI_FINE_TUNED_MODEL_HOST_DIR:-./ai-service/artifacts}:/app/artifacts:ro
     ports:
       - "8001:8001"
 

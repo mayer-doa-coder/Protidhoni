@@ -6,35 +6,47 @@ This service is a separately deployed process: it never imports backend code or 
 
 The default classifier is `phase1-tfidf-rules-v1`: a small bilingual TF-IDF model trained from transparent examples in `src/protidhoni_ai/classifier.py`, plus explicit Bangla/English rules for structured needs and urgency. It returns a refined `type`, extracted `needs`, and `priority` (`critical` through `low`). This is deliberately lightweight and deterministic for the core demo path.
 
-It is not presented as BanglaBERT output. A real local fine-tuned checkpoint can be enabled with `PROTIDHONI_FINE_TUNED_MODEL_PATH`. When that variable is absent, the rules classifier is deliberately used. When it is set but invalid or the optional model dependencies are absent, the service fails clearly at startup; it never silently changes model provenance.
+It is not presented as BanglaBERT output. A real local fine-tuned checkpoint can be enabled with `PROTIDHONI_FINE_TUNED_MODEL_PATH`. When that variable is absent (or blank — a blank value is treated identically to unset), the rules classifier is deliberately used. When it is set but invalid or the optional model dependencies are absent, the service fails clearly at startup; it never silently changes model provenance.
 
-BanglaBERT is a pretrained ELECTRA discriminator, not a crisis classifier. The model card requires its Bangla normalization pipeline for downstream fine-tuning, so install it explicitly alongside the optional dependencies:
+BanglaBERT is a pretrained ELECTRA discriminator, not a crisis classifier. The `model` extra now also pulls in its required Bangla normalization pipeline, so one install covers everything:
 
 ```powershell
 pip install -e ".[model]"
-pip install git+https://github.com/csebuetnlp/normalizer
 ```
 
-Prepare JSONL data with exactly `text` and `type` on each line. `type` must be one of the eight frozen report types. The training command rejects missing classes and datasets with fewer than four examples per class; use a substantially larger independently reviewed dataset for a credible demo evaluation.
+Prepare JSONL data with exactly `text` and `type` on each line. `type` must be one of the eight frozen report types. The training command rejects missing classes and datasets with fewer than four examples per class.
+
+`data/crisis-training.jsonl` (240 examples) and `data/crisis-evaluation.jsonl` (64 examples, 30/8 per class, no overlap) are a hand-authored synthetic bilingual demo corpus — see `data/README.md` for exactly what it is and is not. Fine-tune with:
 
 ```powershell
 $env:PYTHONPATH = "src"
 python -m protidhoni_ai.fine_tuning `
   --data .\data\crisis-training.jsonl `
   --eval-data .\data\crisis-evaluation.jsonl `
-  --output .\artifacts\banglabert-crisis-v1
+  --output .\artifacts\banglabert-crisis-v1 `
+  --epochs 10
 
 $env:PROTIDHONI_FINE_TUNED_MODEL_PATH = ".\artifacts\banglabert-crisis-v1"
-uvicorn protidhoni_ai.main:app --port 8001
-```
-
-The generated `training_manifest.json` records the base model, frozen labels, training/evaluation dataset hashes, parameters, accuracy, and macro-F1. Never evaluate against the training file. Do not commit downloaded model weights or real crisis text to this repository.
-
-```powershell
 $env:PROTIDHONI_AI_INTERNAL_TOKEN = "replace-with-at-least-32-random-characters"
 $env:PYTHONPATH = "src"
 uvicorn protidhoni_ai.main:app --port 8001
 ```
+
+`--epochs` defaults to 3, which measurably undertrains on a dataset this small (a real run against this corpus scored 59% accuracy / 0.52 macro-F1 at 3 epochs vs. 92% accuracy / 0.92 macro-F1 at 10 epochs on the held-out set) — 10 is the epoch count actually used to produce the checkpoint referenced below. Read that result as "learned real signal on this corpus's vocabulary," not as a validated real-world accuracy figure — 64 hand-authored eval examples cannot stand in for review against genuine, messier crisis reports.
+
+The generated `training_manifest.json` records the base model, frozen labels, training/evaluation dataset hashes, parameters, accuracy, and macro-F1. Never evaluate against the training file. Do not commit downloaded model weights, checkpoint artifacts (`artifacts/` is gitignored), or real crisis text to this repository.
+
+### Serving the fine-tuned checkpoint from Docker Compose
+
+The base `ai-service` image stays lean (no torch/transformers) unless you opt in, because that dependency alone adds roughly 1GB. In the repository root `.env`:
+
+```
+INSTALL_AI_MODEL_EXTRAS=true
+AI_FINE_TUNED_MODEL_PATH=/app/artifacts/banglabert-crisis-v1
+AI_FINE_TUNED_MODEL_HOST_DIR=./ai-service/artifacts
+```
+
+Then `docker compose build ai-service && docker compose up ai-service`. The host `artifacts/` directory (containing the checkpoint folder named in `AI_FINE_TUNED_MODEL_PATH`) is bind-mounted read-only into the container at `/app/artifacts`. Leaving `AI_FINE_TUNED_MODEL_PATH` blank keeps the rules classifier active regardless of `INSTALL_AI_MODEL_EXTRAS`.
 
 ## Base-model verification
 

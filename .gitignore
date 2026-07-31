@@ -8,6 +8,7 @@ __pycache__/
 *.py[cod]
 .pytest_cache/
 .venv/
+ai-service/artifacts/
 
 # JavaScript / React Native
 node_modules/
