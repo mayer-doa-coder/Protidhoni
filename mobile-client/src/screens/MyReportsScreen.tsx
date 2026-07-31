@@ -8,11 +8,12 @@ import {getReportTypeLabel} from '../forms/reportFormConfig';
 import {useLanguage} from '../i18n/LanguageContext';
 import {translate, type AppLanguage} from '../i18n/translations';
 import {AppText} from '../ui/AppText';
+import {colors, radius, shadow, spacing} from '../ui/theme';
 
 const STATUS_COLOR: Record<CrisisReport['sync_status'], string> = {
-  local: '#f59e0b',
-  relayed: '#38bdf8',
-  synced: '#22c55e',
+  local: colors.warning,
+  relayed: colors.info,
+  synced: colors.success,
 };
 
 type DeliveryPresentation = {message: string; color: string};
@@ -132,17 +133,17 @@ export function MyReportsScreen({refreshToken = 0}: {refreshToken?: number} = {}
 }
 
 const styles = StyleSheet.create({
-  page: {flex: 1, backgroundColor: '#071a2c'},
-  content: {padding: 16, gap: 10},
-  empty: {color: '#93a5b8', textAlign: 'center', marginTop: 40},
-  error: {color: '#fecaca', backgroundColor: '#7f1d1d', borderRadius: 10, padding: 12},
-  card: {backgroundColor: '#ffffff', borderRadius: 12, padding: 14, gap: 6},
+  page: {flex: 1, backgroundColor: colors.background},
+  content: {padding: spacing.lg, gap: spacing.sm},
+  empty: {color: colors.inkMuted, textAlign: 'center', marginTop: 40},
+  error: {color: colors.danger, backgroundColor: '#fee2e2', borderRadius: radius.sm, padding: 12},
+  card: {backgroundColor: colors.surface, borderRadius: radius.md, padding: 14, gap: 6, ...shadow.card},
   cardHeader: {flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'},
-  cardType: {fontWeight: '700', color: '#071a2c'},
-  cardTimestamp: {color: '#64748b', fontSize: 12},
-  statusPill: {borderRadius: 12, paddingHorizontal: 10, paddingVertical: 3},
-  statusPillText: {color: '#ffffff', fontSize: 11, fontWeight: '700'},
-  cardText: {color: '#111827'},
+  cardType: {fontWeight: '700', color: colors.ink},
+  cardTimestamp: {color: colors.inkMuted, fontSize: 12},
+  statusPill: {borderRadius: radius.pill, paddingHorizontal: 10, paddingVertical: 3},
+  statusPillText: {color: colors.surface, fontSize: 11, fontWeight: '700'},
+  cardText: {color: colors.ink},
   deliveryFeedback: {fontSize: 13, fontWeight: '600'},
-  cardMeta: {color: '#6b7280', fontSize: 12},
+  cardMeta: {color: colors.inkMuted, fontSize: 12},
 });

@@ -6,7 +6,7 @@ const en = {
   'language.bangla': 'বাংলা',
   'language.switchToBangla': 'Switch the application language to Bangla',
   'language.switchToEnglish': 'Switch the application language to English',
-  'tab.create': 'Create',
+  'tab.home': 'Home',
   'tab.reports': 'My reports',
   'tab.nearby': 'Nearby',
   'connection.off': 'Nearby is off',
@@ -35,6 +35,7 @@ const en = {
   'mesh.connectedPeers': 'Connected peers ({{count}})',
   'mesh.noConnections': 'No active peer connections.',
   'mesh.devicesInRange': 'Devices in range ({{count}})',
+  'mesh.noneInRange': 'No devices found nearby yet.',
   'nearby.status.stopped': 'Discovery stopped',
   'nearby.status.confirm': 'Confirm the connection with {{name}}.',
   'nearby.status.connected': 'Connected to {{name}}.',
@@ -152,6 +153,22 @@ const en = {
   'chat.priorityQuestion': 'Which of my queued reports should I act on first, and why?',
   'chat.inputPlaceholder': 'Type a message…',
   'chat.send': 'Send',
+  'home.emergency.title': 'Are you in an emergency?',
+  'home.emergency.body':
+    'Hold the SOS button below to save and relay an emergency report to every connected peer near you.',
+  'home.sos.button': 'Hold to send an SOS report',
+  'home.sos.label': 'SOS',
+  'home.sos.hint': 'Hold to send',
+  'home.sos.holding': 'Keep holding…',
+  'home.sos.defaultText': 'SOS — immediate help needed.',
+  'home.categories.heading': "What's your emergency?",
+  'home.calling.title': 'Sending your SOS…',
+  'home.calling.body':
+    'Your report is saved on this phone and is relaying to every connected peer nearby.',
+  'home.calling.relayedTo': 'Relayed to {{count}} connected peer(s)',
+  'home.calling.waiting': 'Waiting for a peer to relay to…',
+  'home.calling.done': 'Done',
+  'home.back': '← Back to Home',
 } as const;
 
 export type TranslationKey = keyof typeof en;
@@ -162,7 +179,7 @@ const bn: Record<TranslationKey, string> = {
   'language.bangla': 'বাংলা',
   'language.switchToBangla': 'অ্যাপের ভাষা বাংলায় পরিবর্তন করুন',
   'language.switchToEnglish': 'অ্যাপের ভাষা ইংরেজিতে পরিবর্তন করুন',
-  'tab.create': 'তৈরি করুন',
+  'tab.home': 'হোম',
   'tab.reports': 'আমার প্রতিবেদন',
   'tab.nearby': 'কাছাকাছি',
   'connection.off': 'কাছাকাছি সংযোগ বন্ধ',
@@ -191,6 +208,7 @@ const bn: Record<TranslationKey, string> = {
   'mesh.connectedPeers': 'সংযুক্ত পিয়ার ({{count}})',
   'mesh.noConnections': 'কোনো সক্রিয় পিয়ার সংযোগ নেই।',
   'mesh.devicesInRange': 'সীমার মধ্যে ডিভাইস ({{count}})',
+  'mesh.noneInRange': 'কাছাকাছি এখনো কোনো ডিভাইস পাওয়া যায়নি।',
   'nearby.status.stopped': 'ডিভাইস খোঁজা বন্ধ',
   'nearby.status.confirm': '{{name}}-এর সঙ্গে সংযোগ নিশ্চিত করুন।',
   'nearby.status.connected': '{{name}}-এর সঙ্গে সংযুক্ত।',
@@ -304,6 +322,22 @@ const bn: Record<TranslationKey, string> = {
   'chat.priorityQuestion': 'আমার সারিতে থাকা প্রতিবেদনগুলোর মধ্যে কোনটিতে আগে কাজ করা উচিত, এবং কেন?',
   'chat.inputPlaceholder': 'একটি বার্তা লিখুন…',
   'chat.send': 'পাঠান',
+  'home.emergency.title': 'আপনি কি জরুরি অবস্থায় আছেন?',
+  'home.emergency.body':
+    'নিচের SOS বাটন চেপে ধরুন, এতে একটি জরুরি প্রতিবেদন সংরক্ষিত হয়ে আপনার কাছাকাছি সংযুক্ত সবার কাছে পাঠানো হবে।',
+  'home.sos.button': 'SOS প্রতিবেদন পাঠাতে চেপে ধরুন',
+  'home.sos.label': 'SOS',
+  'home.sos.hint': 'চেপে ধরে রাখুন',
+  'home.sos.holding': 'চেপে রাখুন…',
+  'home.sos.defaultText': 'SOS — এখনই সাহায্য প্রয়োজন।',
+  'home.categories.heading': 'আপনার জরুরি প্রয়োজন কী?',
+  'home.calling.title': 'আপনার SOS পাঠানো হচ্ছে…',
+  'home.calling.body':
+    'আপনার প্রতিবেদন এই ফোনে সংরক্ষিত হয়েছে এবং কাছাকাছি সংযুক্ত সবার কাছে পাঠানো হচ্ছে।',
+  'home.calling.relayedTo': '{{count}} জন সংযুক্ত পিয়ারের কাছে পাঠানো হয়েছে',
+  'home.calling.waiting': 'পাঠানোর জন্য পিয়ারের অপেক্ষায়…',
+  'home.calling.done': 'সম্পন্ন',
+  'home.back': '← হোমে ফিরে যান',
 };
 
 export const translations: Record<AppLanguage, Record<TranslationKey, string>> = {

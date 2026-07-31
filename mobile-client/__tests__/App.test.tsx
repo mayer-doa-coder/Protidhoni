@@ -163,7 +163,7 @@ beforeEach(async () => {
   mockStop.mockClear();
 });
 
-test('renders the app (Create tab by default) without crashing', async () => {
+test('renders the app (Home tab by default) without crashing', async () => {
   let renderer: ReactTestRenderer | undefined;
   await act(async () => {
     renderer = create(<App />);
@@ -261,6 +261,10 @@ test('keeps the Nearby session connected while navigating between tabs', async (
     });
     mockListeners.connected[0]({ endpointId: 'peer-persistent' });
   });
+
+  await act(async () => {
+    renderer!.root.findByProps({ testID: 'tab-reports' }).props.onPress();
+  });
   expect(
     renderer!.root.findByProps({ testID: 'global-connection-status' }).props
       .children.props.children,
@@ -301,13 +305,17 @@ test('switches the complete interface to Bangla without stopping Nearby', async 
   });
 
   expect(
-    renderer!.root.findByProps({testID: 'tab-create'}).findByType(Text).props
+    renderer!.root.findByProps({testID: 'tab-home'}).findByType(Text).props
       .children,
-  ).toBe('তৈরি করুন');
+  ).toBe('হোম');
   expect(
     renderer!.root.findByProps({testID: 'tab-reports'}).findByType(Text).props
       .children,
   ).toBe('আমার প্রতিবেদন');
+
+  await act(async () => {
+    renderer!.root.findByProps({testID: 'tab-reports'}).props.onPress();
+  });
   expect(
     renderer!.root.findByProps({testID: 'global-connection-status'}).props
       .children.props.children,

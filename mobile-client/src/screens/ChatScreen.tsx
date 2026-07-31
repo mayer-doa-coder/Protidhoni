@@ -13,6 +13,7 @@ import {
   type ChatMessage,
 } from '../llm/localAssistant';
 import {AppText, AppTextInput} from '../ui/AppText';
+import {colors, radius, shadow, spacing} from '../ui/theme';
 
 type DisplayMessage = ChatMessage & {id: string};
 
@@ -101,7 +102,18 @@ export function ChatScreen() {
 
   return (
     <View style={styles.page}>
-      <AppText style={styles.caveat}>{t('chat.caveat')}</AppText>
+      <View style={styles.header}>
+        <View style={styles.avatar}>
+          <AppText style={styles.avatarText}>AI</AppText>
+        </View>
+        <View style={styles.headerText}>
+          <AppText style={styles.headerTitle}>{t('tab.chat')}</AppText>
+          <AppText style={styles.caveat} numberOfLines={2}>
+            {t('chat.caveat')}
+          </AppText>
+        </View>
+      </View>
+
       {status.state !== 'ready' && (
         <View style={styles.statusBanner}>
           <AppText style={styles.statusText}>
@@ -143,6 +155,7 @@ export function ChatScreen() {
           editable={ready && !sending}
           onChangeText={setDraft}
           placeholder={t('chat.inputPlaceholder')}
+          placeholderTextColor={colors.neutral}
           style={styles.input}
           value={draft}
           multiline
@@ -169,53 +182,79 @@ export function ChatScreen() {
 export {prioritizeReports};
 
 const styles = StyleSheet.create({
-  page: {flex: 1, backgroundColor: '#071a2c'},
-  caveat: {
-    color: '#93a5b8',
-    fontSize: 12,
-    paddingHorizontal: 12,
-    paddingTop: 10,
+  page: {flex: 1, backgroundColor: colors.background},
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    padding: spacing.lg,
+    backgroundColor: colors.surface,
+    borderBottomLeftRadius: radius.lg,
+    borderBottomRightRadius: radius.lg,
+    ...shadow.card,
   },
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#D4CEFA',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarText: {color: colors.ink, fontWeight: '800', fontSize: 12},
+  headerText: {flex: 1},
+  headerTitle: {color: colors.ink, fontWeight: '700', fontSize: 16},
+  caveat: {color: colors.inkMuted, fontSize: 11, marginTop: 2},
   statusBanner: {
-    marginHorizontal: 12,
-    marginTop: 8,
-    backgroundColor: '#92400e',
-    borderRadius: 8,
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.sm,
+    backgroundColor: '#FFF1E6',
+    borderRadius: radius.sm,
     padding: 10,
   },
-  statusText: {color: '#ffffff'},
-  messageList: {padding: 12, gap: 8, flexGrow: 1},
-  bubble: {borderRadius: 12, padding: 10, maxWidth: '85%'},
-  userBubble: {backgroundColor: '#0f766e', alignSelf: 'flex-end'},
-  assistantBubble: {backgroundColor: '#ffffff', alignSelf: 'flex-start'},
-  userBubbleText: {color: '#ffffff'},
-  assistantBubbleText: {color: '#111827'},
-  empty: {color: '#93a5b8', textAlign: 'center', marginTop: 40},
+  statusText: {color: colors.primaryDark},
+  messageList: {padding: spacing.lg, gap: spacing.sm, flexGrow: 1},
+  bubble: {borderRadius: radius.md, padding: 12, maxWidth: '85%'},
+  userBubble: {backgroundColor: colors.primary, alignSelf: 'flex-end', borderBottomRightRadius: 4},
+  assistantBubble: {
+    backgroundColor: colors.surface,
+    alignSelf: 'flex-start',
+    borderBottomLeftRadius: 4,
+    borderWidth: 1,
+    borderColor: colors.surfaceBorder,
+  },
+  userBubbleText: {color: colors.surface},
+  assistantBubbleText: {color: colors.ink},
+  empty: {color: colors.inkMuted, textAlign: 'center', marginTop: 40},
   priorityButton: {
-    marginHorizontal: 12,
-    marginBottom: 8,
-    backgroundColor: '#c2410c',
-    borderRadius: 10,
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.sm,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.primary,
+    borderRadius: radius.pill,
     padding: 10,
     alignItems: 'center',
   },
-  priorityButtonText: {color: '#ffffff', fontWeight: '700'},
+  priorityButtonText: {color: colors.primaryDark, fontWeight: '700'},
   buttonDisabled: {opacity: 0.5},
-  composer: {flexDirection: 'row', gap: 8, padding: 12, alignItems: 'flex-end'},
+  composer: {flexDirection: 'row', gap: spacing.sm, padding: spacing.lg, alignItems: 'flex-end'},
   input: {
     flex: 1,
-    backgroundColor: '#ffffff',
-    borderRadius: 10,
-    paddingHorizontal: 12,
+    backgroundColor: colors.surface,
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.lg,
     paddingVertical: 10,
-    color: '#071a2c',
+    color: colors.ink,
     maxHeight: 120,
+    borderWidth: 1,
+    borderColor: colors.surfaceBorder,
   },
   sendButton: {
-    backgroundColor: '#0f766e',
-    borderRadius: 10,
-    paddingHorizontal: 16,
+    backgroundColor: colors.primary,
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.lg,
     paddingVertical: 12,
   },
-  sendButtonText: {color: '#ffffff', fontWeight: '700'},
+  sendButtonText: {color: colors.surface, fontWeight: '700'},
 });

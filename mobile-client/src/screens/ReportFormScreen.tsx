@@ -22,6 +22,7 @@ import {
 import {buildReportDraft, type FormLocationInput} from '../forms/reportFormModel';
 import {useLanguage} from '../i18n/LanguageContext';
 import {AppText, AppTextInput} from '../ui/AppText';
+import {colors, radius, shadow, spacing} from '../ui/theme';
 import {fontFamilyForLanguage} from '../ui/typography';
 
 async function requestLocationPermission(): Promise<boolean> {
@@ -31,12 +32,14 @@ async function requestLocationPermission(): Promise<boolean> {
 }
 
 export function ReportFormScreen({
+  initialType,
   onReportQueued,
 }: {
+  initialType?: CreatableReportType;
   onReportQueued?: (report: CrisisReport) => Promise<number>;
 } = {}) {
   const {formatNumber, language, setLanguage, t} = useLanguage();
-  const [reportType, setReportType] = useState<CreatableReportType>('SOS');
+  const [reportType, setReportType] = useState<CreatableReportType>(initialType ?? 'SOS');
   const [text, setText] = useState('');
   const [peopleCount, setPeopleCount] = useState('');
   const [needs, setNeeds] = useState<ReadonlySet<string>>(new Set());
@@ -364,44 +367,68 @@ export function ReportFormScreen({
 }
 
 const styles = StyleSheet.create({
-  page: {flex: 1, backgroundColor: '#071a2c'},
-  content: {padding: 16, gap: 8, paddingBottom: 32},
-  title: {fontSize: 24, fontWeight: '700', color: '#ffffff'},
-  offlineHelper: {fontSize: 13, color: '#93a5b8', marginBottom: 6},
-  label: {fontSize: 14, fontWeight: '700', color: '#dbe4ee', marginTop: 10},
+  page: {flex: 1, backgroundColor: colors.background},
+  content: {padding: spacing.lg, gap: spacing.sm, paddingBottom: spacing.xxl},
+  title: {fontSize: 22, fontWeight: '700', color: colors.ink},
+  offlineHelper: {fontSize: 13, color: colors.inkMuted, marginBottom: 6},
+  label: {fontSize: 14, fontWeight: '700', color: colors.ink, marginTop: 10},
   choiceRow: {flexDirection: 'row', flexWrap: 'wrap', gap: 8},
   choiceChip: {
-    borderRadius: 16,
+    borderRadius: radius.pill,
     paddingVertical: 7,
     paddingHorizontal: 12,
-    backgroundColor: '#12283f',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#2a4a6b',
+    borderColor: colors.surfaceBorder,
   },
-  choiceChipSelected: {backgroundColor: '#c2410c', borderColor: '#c2410c'},
-  needChipSelected: {backgroundColor: '#0f766e', borderColor: '#0f766e'},
-  choiceText: {color: '#b8c7d9'},
-  choiceTextSelected: {color: '#ffffff', fontWeight: '700'},
-  formHeading: {backgroundColor: '#12283f', borderRadius: 10, padding: 12, marginTop: 4},
-  formTitle: {fontSize: 18, fontWeight: '700', color: '#ffffff'},
-  formHelper: {fontSize: 13, color: '#b8c7d9', lineHeight: 19, marginTop: 3},
+  choiceChipSelected: {backgroundColor: colors.primary, borderColor: colors.primary},
+  needChipSelected: {backgroundColor: colors.info, borderColor: colors.info},
+  choiceText: {color: colors.inkMuted},
+  choiceTextSelected: {color: colors.surface, fontWeight: '700'},
+  formHeading: {backgroundColor: colors.surface, borderRadius: radius.md, padding: 12, marginTop: 4, ...shadow.card},
+  formTitle: {fontSize: 18, fontWeight: '700', color: colors.ink},
+  formHelper: {fontSize: 13, color: colors.inkMuted, lineHeight: 19, marginTop: 3},
   textArea: {
-    backgroundColor: '#ffffff',
-    color: '#111827',
-    borderRadius: 10,
+    backgroundColor: colors.surface,
+    color: colors.ink,
+    borderRadius: radius.sm,
     padding: 12,
     minHeight: 96,
     textAlignVertical: 'top',
+    borderWidth: 1,
+    borderColor: colors.surfaceBorder,
   },
-  input: {backgroundColor: '#ffffff', color: '#111827', borderRadius: 10, padding: 12},
-  locationButton: {backgroundColor: '#12283f', borderRadius: 10, paddingVertical: 8, paddingHorizontal: 12},
-  locationButtonSelected: {borderColor: '#38bdf8', borderWidth: 1},
-  locationButtonText: {color: '#dbe4ee', fontWeight: '600'},
-  locationSummary: {color: '#93a5b8', fontSize: 13},
+  input: {
+    backgroundColor: colors.surface,
+    color: colors.ink,
+    borderRadius: radius.sm,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: colors.surfaceBorder,
+  },
+  locationButton: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.sm,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: colors.surfaceBorder,
+  },
+  locationButtonSelected: {borderColor: colors.primary, borderWidth: 1.5},
+  locationButtonText: {color: colors.ink, fontWeight: '600'},
+  locationSummary: {color: colors.inkMuted, fontSize: 13},
   manualLocationRow: {flexDirection: 'row', gap: 8},
-  manualInput: {flex: 1, backgroundColor: '#ffffff', color: '#111827', borderRadius: 10, padding: 12},
-  submitButton: {marginTop: 16, backgroundColor: '#c2410c', borderRadius: 10, padding: 14, alignItems: 'center'},
+  manualInput: {
+    flex: 1,
+    backgroundColor: colors.surface,
+    color: colors.ink,
+    borderRadius: radius.sm,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: colors.surfaceBorder,
+  },
+  submitButton: {marginTop: 16, backgroundColor: colors.primary, borderRadius: radius.sm, padding: 14, alignItems: 'center'},
   submitButtonDisabled: {opacity: 0.6},
-  submitButtonText: {color: '#ffffff', fontSize: 16, fontWeight: '700'},
-  confirmation: {color: '#22c55e', fontSize: 12, marginTop: 8},
+  submitButtonText: {color: colors.surface, fontSize: 16, fontWeight: '700'},
+  confirmation: {color: colors.success, fontSize: 12, marginTop: 8},
 });

@@ -22,6 +22,10 @@ describe('application translations', () => {
       'mesh.backend.help',
       'mesh.backend.url',
       'report.location.gpsSummary',
+      // "SOS" is an international distress signal, not an English word --
+      // deliberately identical in both languages, same as the Figma
+      // reference design keeps it untranslated.
+      'home.sos.label',
     ]);
     const missingBangla = Object.entries(translations.bn)
       .filter(([key]) => !technicalKeys.has(key))
